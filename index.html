@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Skincare Planner</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="app-header">
+  <h1>Skincare Planner</h1>
+</header>
+
+<!-- PASSPHRASE GATE -->
+<div id="passphrase-gate" class="gate">
+  <div class="gate-box">
+    <h2>Unlock your data</h2>
+    <p>Enter your passphrase. Use the exact same one on every device — it's how the app finds your data. There's no password reset, so pick something you'll remember and write it down somewhere safe.</p>
+    <input type="password" id="gate-passphrase" placeholder="Your passphrase" autocomplete="off">
+    <button id="gate-unlock-btn" class="primary-btn">Unlock</button>
+    <p id="gate-status" class="gate-status"></p>
+  </div>
+</div>
+
+<div id="app-content" class="hidden">
+
+<nav class="tabs">
+  <button class="tab-btn active" data-tab="routine">Routine</button>
+  <button class="tab-btn" data-tab="calendar">Calendar</button>
+  <button class="tab-btn" data-tab="checkin">Check-in</button>
+  <button class="tab-btn" data-tab="history">History</button>
+</nav>
+
+<main>
+
+  <!-- ROUTINE TAB -->
+  <section id="tab-routine" class="tab-panel active">
+
+    <h2>Morning routine</h2>
+    <ul id="morning-list" class="step-list"></ul>
+
+    <h2>Evening routine</h2>
+    <ul id="evening-list" class="step-list"></ul>
+
+    <button id="add-step-btn" class="primary-btn">+ Add a step</button>
+
+    <!-- Add/Edit step form (hidden until needed) -->
+    <div id="step-form" class="modal hidden">
+      <div class="modal-content">
+        <h3 id="step-form-title">Add a step</h3>
+
+        <label for="step-time">When</label>
+        <select id="step-time">
+          <option value="morning">Morning</option>
+          <option value="evening">Evening</option>
+        </select>
+
+        <label for="step-product">Product name</label>
+        <input type="text" id="step-product" placeholder="e.g. Salicylic acid cleanser">
+
+        <label>How often</label>
+        <div class="freq-choice">
+          <label><input type="radio" name="freq-type" value="daily" checked> Every day</label>
+          <label><input type="radio" name="freq-type" value="days"> Specific days</label>
+        </div>
+
+        <div id="day-picker" class="day-picker hidden">
+          <label><input type="checkbox" value="0"> Sun</label>
+          <label><input type="checkbox" value="1"> Mon</label>
+          <label><input type="checkbox" value="2"> Tue</label>
+          <label><input type="checkbox" value="3"> Wed</label>
+          <label><input type="checkbox" value="4"> Thu</label>
+          <label><input type="checkbox" value="5"> Fri</label>
+          <label><input type="checkbox" value="6"> Sat</label>
+        </div>
+
+        <div class="modal-actions">
+          <button id="step-cancel-btn" class="secondary-btn">Cancel</button>
+          <button id="step-save-btn" class="primary-btn">Save</button>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- CALENDAR TAB -->
+  <section id="tab-calendar" class="tab-panel">
+    <div class="week-nav">
+      <button id="week-prev-btn" class="nav-btn">&larr; Prev</button>
+      <button id="week-today-btn" class="nav-btn">Today</button>
+      <button id="week-next-btn" class="nav-btn">Next &rarr;</button>
+    </div>
+    <div id="week-view" class="week-view"></div>
+  </section>
+
+  <!-- CHECK-IN TAB -->
+  <section id="tab-checkin" class="tab-panel">
+    <div id="checkin-status" class="checkin-status"></div>
+
+    <label class="interval-row">
+      Remind me every
+      <input type="number" id="interval-input" min="1" max="30" value="3">
+      days
+    </label>
+
+    <button id="add-checkin-btn" class="primary-btn">Log a check-in</button>
+
+    <h2>Past check-ins</h2>
+    <ul id="checkin-list" class="step-list"></ul>
+
+    <!-- Check-in form (hidden until needed) -->
+    <div id="checkin-form" class="modal hidden">
+      <div class="modal-content">
+        <h3>How's your skin today?</h3>
+        <div id="checkin-questions"></div>
+        <div class="modal-actions">
+          <button id="checkin-cancel-btn" class="secondary-btn">Cancel</button>
+          <button id="checkin-save-btn" class="primary-btn">Save</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HISTORY TAB -->
+  <section id="tab-history" class="tab-panel">
+    <p>Copy your routine and check-in history as plain text — paste it into a Claude chat to get suggestions, then come back and update your routine here yourself.</p>
+
+    <button id="copy-history-btn" class="primary-btn">Copy my history</button>
+    <p id="copy-status" class="gate-status"></p>
+
+    <textarea id="history-preview" class="history-preview" readonly></textarea>
+
+    <button id="forget-device-btn" class="secondary-btn full-width">Switch to a different passphrase</button>
+  </section>
+
+</main>
+
+</div><!-- /#app-content -->
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
