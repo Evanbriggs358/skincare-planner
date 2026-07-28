@@ -1,6 +1,6 @@
 import { firebaseConfig } from "./firebase-config.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp);
@@ -23,6 +23,7 @@ tabButtons.forEach(btn => {
 // ---- Data ----
 let steps = [];
 let editingStepId = null;
+let photos = {}; // { "2026-07-27": { dataUrl, uploadedAt } }
 
 function saveSteps(newSteps) {
   steps = newSteps;
@@ -318,6 +319,7 @@ function buildDayCardHtml(date, today, extraClass) {
   const milestone = MILESTONES.find(m => m.date === dateToISO(date));
   const isDayView = !!extraClass;
   const differinNight = isDifferinNight(date);
+  const dayPhoto = photos[dateToISO(date)];
 
   return `
     ${milestone && isDayView ? `<div class="milestone-banner">📋 ${escapeHtml(milestone.label)}</div>` : ""}
@@ -330,6 +332,11 @@ function buildDayCardHtml(date, today, extraClass) {
       ${renderDaySteps(morning)}
       <div class="day-section-label">Evening ${differinNight ? '<span class="differin-tag">🔴 Differin night</span>' : ""}</div>
       ${renderDaySteps(evening)}
+      ${dayPhoto && isDayView ? `
+        <button type="button" class="day-photo-thumb" data-date="${dateToISO(date)}">
+          <img src="${dayPhoto.dataUrl}" alt="Photo from ${formatISOShort(dateToISO(date))}">
+        </button>
+      ` : ""}
     </div>
   `;
 }
@@ -338,6 +345,8 @@ function renderDayView(container) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   container.innerHTML = buildDayCardHtml(calendarDate, today, "day-view-card");
+  const photoBtn = container.querySelector(".day-photo-thumb");
+  if (photoBtn) photoBtn.addEventListener("click", () => openLightbox(photoBtn.dataset.date));
 }
 
 function renderWeekViewInto(container) {
@@ -639,6 +648,142 @@ document.getElementById("copy-history-btn").addEventListener("click", async () =
   }
 });
 
+// ---- Photos ----
+async function compressImage(file) {
+  let bitmap;
+  try {
+    bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+  } catch (err) {
+    bitmap = await createImageBitmap(file);
+  }
+
+  const maxDim = 1000;
+  let { width, height } = bitmap;
+  if (width > maxDim || height > maxDim) {
+    if (width > height) {
+      height = Math.round((height * maxDim) / width);
+      width = maxDim;
+    } else {
+      width = Math.round((width * maxDim) / height);
+      height = maxDim;
+    }
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  canvas.getContext("2d").drawImage(bitmap, 0, 0, width, height);
+
+  let quality = 0.8;
+  let dataUrl = canvas.toDataURL("image/jpeg", quality);
+  while (dataUrl.length > 700000 && quality > 0.2) {
+    quality -= 0.15;
+    dataUrl = canvas.toDataURL("image/jpeg", quality);
+  }
+  return dataUrl;
+}
+
+document.getElementById("photo-file-input").addEventListener("change", async e => {
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file || !photosCollectionRef) return;
+
+  const statusEl = document.getElementById("photo-upload-status");
+  statusEl.textContent = "Processing photo...";
+
+  try {
+    const dataUrl = await compressImage(file);
+    const iso = todayISO();
+    await setDoc(doc(photosCollectionRef, iso), { dataUrl, uploadedAt: new Date().toISOString() });
+    statusEl.textContent = "Saved today's photo.";
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = "Couldn't process that photo — try again.";
+  }
+});
+
+function renderPhotosTab() {
+  const container = document.getElementById("photo-timeline");
+  const dates = Object.keys(photos).sort().reverse();
+
+  if (dates.length === 0) {
+    container.innerHTML = `<p class="empty-note">No photos yet.</p>`;
+    return;
+  }
+
+  container.innerHTML = dates.map(iso => `
+    <button type="button" class="photo-thumb" data-date="${iso}">
+      <img src="${photos[iso].dataUrl}" alt="Skin photo from ${formatISOShort(iso)}">
+      <span>${formatISOShort(iso)}</span>
+    </button>
+  `).join("");
+
+  container.querySelectorAll(".photo-thumb").forEach(btn => {
+    btn.addEventListener("click", () => openLightbox(btn.dataset.date));
+  });
+}
+
+function renderCompareSection() {
+  const section = document.getElementById("compare-section");
+  const emptyNote = document.getElementById("compare-empty-note");
+  const dates = Object.keys(photos).sort();
+
+  if (dates.length < 2) {
+    section.classList.add("hidden");
+    emptyNote.classList.remove("hidden");
+    return;
+  }
+  emptyNote.classList.add("hidden");
+  section.classList.remove("hidden");
+
+  const selectA = document.getElementById("compare-select-a");
+  const selectB = document.getElementById("compare-select-b");
+  const prevA = selectA.value;
+  const prevB = selectB.value;
+
+  const optionsHtml = dates.map(iso => `<option value="${iso}">${formatISOShort(iso)}</option>`).join("");
+  selectA.innerHTML = optionsHtml;
+  selectB.innerHTML = optionsHtml;
+
+  selectA.value = dates.includes(prevA) ? prevA : dates[0];
+  selectB.value = dates.includes(prevB) ? prevB : dates[dates.length - 1];
+
+  updateCompareImages();
+}
+
+function updateCompareImages() {
+  const isoA = document.getElementById("compare-select-a").value;
+  const isoB = document.getElementById("compare-select-b").value;
+  if (photos[isoA]) document.getElementById("compare-img-a").src = photos[isoA].dataUrl;
+  if (photos[isoB]) document.getElementById("compare-img-b").src = photos[isoB].dataUrl;
+}
+
+document.getElementById("compare-select-a").addEventListener("change", updateCompareImages);
+document.getElementById("compare-select-b").addEventListener("change", updateCompareImages);
+
+function openLightbox(iso) {
+  if (!photos[iso]) return;
+  document.getElementById("lightbox-img").src = photos[iso].dataUrl;
+  document.getElementById("lightbox-date").textContent = formatISOShort(iso);
+  const lightbox = document.getElementById("photo-lightbox");
+  lightbox.dataset.date = iso;
+  lightbox.classList.remove("hidden");
+}
+
+function closeLightbox() {
+  document.getElementById("photo-lightbox").classList.add("hidden");
+}
+
+document.getElementById("lightbox-close-btn").addEventListener("click", closeLightbox);
+
+document.getElementById("lightbox-delete-btn").addEventListener("click", async () => {
+  const iso = document.getElementById("photo-lightbox").dataset.date;
+  if (!iso || !photosCollectionRef) return;
+  if (!confirm(`Delete the photo from ${formatISOShort(iso)}?`)) return;
+  await deleteDoc(doc(photosCollectionRef, iso));
+  closeLightbox();
+});
+
 function renderAll() {
   render();
   renderCheckinStatus();
@@ -651,7 +796,9 @@ function renderAll() {
 // ---- Cloud connection & passphrase gate ----
 const HASH_STORAGE_KEY = "skincare-user-hash";
 let userDocRef = null;
+let photosCollectionRef = null;
 let unsubscribeSnapshot = null;
+let unsubscribePhotos = null;
 
 async function hashPassphrase(text) {
   const bytes = new TextEncoder().encode(text);
@@ -691,6 +838,7 @@ async function connect(hash) {
   }
 
   userDocRef = ref;
+  photosCollectionRef = collection(db, "users", hash, "photos");
   localStorage.setItem(HASH_STORAGE_KEY, hash);
 
   if (unsubscribeSnapshot) unsubscribeSnapshot();
@@ -700,6 +848,15 @@ async function connect(hash) {
     steps = data.steps || [];
     checkins = data.checkins || [];
     intervalDays = data.intervalDays ?? 3;
+    renderAll();
+  });
+
+  if (unsubscribePhotos) unsubscribePhotos();
+  unsubscribePhotos = onSnapshot(photosCollectionRef, snap => {
+    photos = {};
+    snap.forEach(d => { photos[d.id] = d.data(); });
+    renderPhotosTab();
+    renderCompareSection();
     renderAll();
   });
 
@@ -719,10 +876,13 @@ document.getElementById("gate-passphrase").addEventListener("keydown", e => {
 
 document.getElementById("forget-device-btn").addEventListener("click", () => {
   if (unsubscribeSnapshot) unsubscribeSnapshot();
+  if (unsubscribePhotos) unsubscribePhotos();
   localStorage.removeItem(HASH_STORAGE_KEY);
   userDocRef = null;
+  photosCollectionRef = null;
   steps = [];
   checkins = [];
+  photos = {};
   document.getElementById("gate-passphrase").value = "";
   showGate("");
 });
