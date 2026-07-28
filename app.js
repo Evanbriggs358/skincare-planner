@@ -15,7 +15,7 @@ tabButtons.forEach(btn => {
     tabPanels.forEach(p => p.classList.remove("active"));
     btn.classList.add("active");
     document.getElementById(`tab-${btn.dataset.tab}`).classList.add("active");
-    if (btn.dataset.tab === "calendar") renderWeekView();
+    if (btn.dataset.tab === "calendar") renderCalendar();
     if (btn.dataset.tab === "history") renderHistoryPreview();
   });
 });
@@ -170,8 +170,10 @@ document.getElementById("step-save-btn").addEventListener("click", () => {
   closeStepForm();
 });
 
-// ---- Calendar / week view ----
-let weekOffset = 0;
+// ---- Calendar (day / week / month views) ----
+let calendarView = "week";
+let calendarDate = new Date();
+calendarDate.setHours(0, 0, 0, 0);
 
 function stepAppliesOnDay(step, dayOfWeek) {
   return step.frequency.type === "daily" || step.frequency.days.includes(dayOfWeek);
@@ -188,44 +190,14 @@ function formatDayHeading(date) {
   return date.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
 }
 
+function formatDayHeadingLong(date) {
+  return date.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+}
+
 function isSameDay(a, b) {
   return a.getFullYear() === b.getFullYear() &&
     a.getMonth() === b.getMonth() &&
     a.getDate() === b.getDate();
-}
-
-function renderWeekView() {
-  const container = document.getElementById("week-view");
-  container.innerHTML = "";
-
-  const today = new Date();
-  const weekStart = startOfWeek(today);
-  weekStart.setDate(weekStart.getDate() + weekOffset * 7);
-
-  for (let i = 0; i < 7; i++) {
-    const date = new Date(weekStart);
-    date.setDate(date.getDate() + i);
-    const dayOfWeek = date.getDay();
-
-    const card = document.createElement("div");
-    card.className = "day-card";
-    if (isSameDay(date, today)) card.classList.add("is-today");
-
-    const morning = steps.filter(s => s.time === "morning" && stepAppliesOnDay(s, dayOfWeek));
-    const evening = steps.filter(s => s.time === "evening" && stepAppliesOnDay(s, dayOfWeek));
-
-    card.innerHTML = `
-      <div class="day-card-header">
-        <span>${formatDayHeading(date)}</span>
-        ${isSameDay(date, today) ? '<span class="today-tag">Today</span>' : ""}
-      </div>
-      <div class="day-section-label">Morning</div>
-      ${renderDaySteps(morning)}
-      <div class="day-section-label">Evening</div>
-      ${renderDaySteps(evening)}
-    `;
-    container.appendChild(card);
-  }
 }
 
 function renderDaySteps(list) {
@@ -233,18 +205,134 @@ function renderDaySteps(list) {
   return list.map(s => `<div class="day-step">${escapeHtml(s.product)}</div>`).join("");
 }
 
+function buildDayCardHtml(date, today, extraClass) {
+  const dayOfWeek = date.getDay();
+  const morning = steps.filter(s => s.time === "morning" && stepAppliesOnDay(s, dayOfWeek));
+  const evening = steps.filter(s => s.time === "evening" && stepAppliesOnDay(s, dayOfWeek));
+  const isToday = isSameDay(date, today);
+
+  return `
+    <div class="day-card ${extraClass || ""} ${isToday ? "is-today" : ""}">
+      <div class="day-card-header">
+        <span>${extraClass ? formatDayHeadingLong(date) : formatDayHeading(date)}</span>
+        ${isToday ? '<span class="today-tag">Today</span>' : ""}
+      </div>
+      <div class="day-section-label">Morning</div>
+      ${renderDaySteps(morning)}
+      <div class="day-section-label">Evening</div>
+      ${renderDaySteps(evening)}
+    </div>
+  `;
+}
+
+function renderDayView(container) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  container.innerHTML = buildDayCardHtml(calendarDate, today, "day-view-card");
+}
+
+function renderWeekViewInto(container) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const weekStart = startOfWeek(calendarDate);
+
+  let html = "";
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(weekStart);
+    date.setDate(date.getDate() + i);
+    html += buildDayCardHtml(date, today, "");
+  }
+  container.innerHTML = html;
+}
+
+function renderMonthView(container) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const year = calendarDate.getFullYear();
+  const month = calendarDate.getMonth();
+  const gridStart = new Date(year, month, 1);
+  gridStart.setDate(gridStart.getDate() - gridStart.getDay());
+
+  let cellsHtml = "";
+  for (let i = 0; i < 42; i++) {
+    const cellDate = new Date(gridStart);
+    cellDate.setDate(cellDate.getDate() + i);
+    const inMonth = cellDate.getMonth() === month;
+    const dayOfWeek = cellDate.getDay();
+    const hasMorning = steps.some(s => s.time === "morning" && stepAppliesOnDay(s, dayOfWeek));
+    const hasEvening = steps.some(s => s.time === "evening" && stepAppliesOnDay(s, dayOfWeek));
+
+    cellsHtml += `
+      <button type="button" class="month-cell ${inMonth ? "" : "is-outside"} ${isSameDay(cellDate, today) ? "is-today" : ""}" data-date="${cellDate.getTime()}">
+        <span>${cellDate.getDate()}</span>
+        <span class="month-cell-dots">
+          ${hasMorning ? '<span class="dot dot-am"></span>' : ""}
+          ${hasEvening ? '<span class="dot dot-pm"></span>' : ""}
+        </span>
+      </button>
+    `;
+  }
+
+  container.innerHTML = `
+    <div class="month-heading">${calendarDate.toLocaleDateString(undefined, { month: "long", year: "numeric" })}</div>
+    <div class="month-grid">
+      ${DAY_LABELS.map(d => `<div class="month-dow">${d}</div>`).join("")}
+      ${cellsHtml}
+    </div>
+  `;
+
+  container.querySelectorAll(".month-cell").forEach(btn => {
+    btn.addEventListener("click", () => {
+      calendarDate = new Date(Number(btn.dataset.date));
+      calendarView = "day";
+      setActiveViewButton();
+      renderCalendar();
+    });
+  });
+}
+
+function renderCalendar() {
+  const container = document.getElementById("calendar-view");
+  if (calendarView === "day") renderDayView(container);
+  else if (calendarView === "week") renderWeekViewInto(container);
+  else renderMonthView(container);
+}
+
+function setActiveViewButton() {
+  document.querySelectorAll(".view-btn").forEach(b => {
+    b.classList.toggle("active", b.dataset.view === calendarView);
+  });
+}
+
+document.querySelectorAll(".view-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    calendarView = btn.dataset.view;
+    setActiveViewButton();
+    renderCalendar();
+  });
+});
+
 document.getElementById("week-prev-btn").addEventListener("click", () => {
-  weekOffset -= 1;
-  renderWeekView();
+  navigateCalendar(-1);
 });
 document.getElementById("week-next-btn").addEventListener("click", () => {
-  weekOffset += 1;
-  renderWeekView();
+  navigateCalendar(1);
 });
 document.getElementById("week-today-btn").addEventListener("click", () => {
-  weekOffset = 0;
-  renderWeekView();
+  calendarDate = new Date();
+  calendarDate.setHours(0, 0, 0, 0);
+  renderCalendar();
 });
+
+function navigateCalendar(direction) {
+  const d = new Date(calendarDate);
+  if (calendarView === "day") d.setDate(d.getDate() + direction);
+  else if (calendarView === "week") d.setDate(d.getDate() + direction * 7);
+  else d.setMonth(d.getMonth() + direction);
+  calendarDate = d;
+  renderCalendar();
+}
 
 // ---- Check-in ----
 const QUESTIONS = [
@@ -448,7 +536,7 @@ function renderAll() {
   renderCheckinList();
   document.getElementById("interval-input").value = intervalDays;
   const calendarTabActive = document.querySelector('.tab-btn[data-tab="calendar"]').classList.contains("active");
-  if (calendarTabActive) renderWeekView();
+  if (calendarTabActive) renderCalendar();
 }
 
 // ---- Cloud connection & passphrase gate ----

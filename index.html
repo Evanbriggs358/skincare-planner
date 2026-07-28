@@ -86,12 +86,17 @@
 
   <!-- CALENDAR TAB -->
   <section id="tab-calendar" class="tab-panel">
+    <div class="view-toggle">
+      <button class="view-btn" data-view="day">Day</button>
+      <button class="view-btn active" data-view="week">Week</button>
+      <button class="view-btn" data-view="month">Month</button>
+    </div>
     <div class="week-nav">
       <button id="week-prev-btn" class="nav-btn">&larr; Prev</button>
       <button id="week-today-btn" class="nav-btn">Today</button>
       <button id="week-next-btn" class="nav-btn">Next &rarr;</button>
     </div>
-    <div id="week-view" class="week-view"></div>
+    <div id="calendar-view" class="week-view"></div>
   </section>
 
   <!-- CHECK-IN TAB -->
