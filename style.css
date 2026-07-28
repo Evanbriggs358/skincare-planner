@@ -607,6 +607,7 @@ h2:first-of-type { margin-top: 4px; }
   object-fit: cover;
   display: block;
   background: black;
+  transform: scaleX(-1);
 }
 .camera-guide {
   position: absolute;
