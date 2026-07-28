@@ -236,10 +236,10 @@ function buildAcnePlanSteps() {
     mkStep("evening", "Differin (Adapalene) — Phase 2: every other night", { type: "everyOther", anchorDate: "2026-08-11" }, "2026-08-11", "2026-08-24"),
     mkStep("evening", "Differin (Adapalene) — Phase 3: most nights", { type: "days", days: [1, 2, 3, 5, 6] }, "2026-08-25", "2026-09-07"),
     mkStep("evening", "Differin (Adapalene) — Phase 4: nightly", daily, "2026-09-08", null),
-    // Azelaic Acid PM — non-Differin nights only (mirrors the Differin phases; none needed once Differin goes nightly)
-    mkStep("evening", "Anua Azelaic Acid 10+ (PM, non-Differin nights)", { type: "days", days: [1, 2, 4, 5, 6] }, "2026-07-27", "2026-08-10"),
-    mkStep("evening", "Anua Azelaic Acid 10+ (PM, non-Differin nights)", { type: "everyOther", anchorDate: "2026-08-12" }, "2026-08-11", "2026-08-24"),
-    mkStep("evening", "Anua Azelaic Acid 10+ (PM, non-Differin nights)", { type: "days", days: [0, 4] }, "2026-08-25", "2026-09-07"),
+    // Topicals Faded Brightening Serum — PM, non-Differin nights only (Azelaic Acid stays AM-only; mirrors the Differin phases, none needed once Differin goes nightly)
+    mkStep("evening", "Topicals Faded Brightening Serum (PM, non-Differin nights)", { type: "days", days: [1, 2, 4, 5, 6] }, "2026-07-27", "2026-08-10"),
+    mkStep("evening", "Topicals Faded Brightening Serum (PM, non-Differin nights)", { type: "everyOther", anchorDate: "2026-08-12" }, "2026-08-11", "2026-08-24"),
+    mkStep("evening", "Topicals Faded Brightening Serum (PM, non-Differin nights)", { type: "days", days: [0, 4] }, "2026-08-25", "2026-09-07"),
     // TreeActiv — non-Differin nights only, on active cysts
     mkStep("evening", "TreeActiv Cystic Spot Treatment (non-Differin nights, active cysts only)", { type: "days", days: [1, 2, 4, 5, 6] }, "2026-07-27", "2026-08-10"),
     mkStep("evening", "TreeActiv Cystic Spot Treatment (non-Differin nights, active cysts only)", { type: "everyOther", anchorDate: "2026-08-12" }, "2026-08-11", "2026-08-24"),
