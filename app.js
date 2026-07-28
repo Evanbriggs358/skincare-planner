@@ -323,7 +323,7 @@ function buildDayCardHtml(date, today, extraClass) {
 
   return `
     ${milestone && isDayView ? `<div class="milestone-banner">📋 ${escapeHtml(milestone.label)}</div>` : ""}
-    <div class="day-card ${extraClass || ""} ${isToday ? "is-today" : ""} ${differinNight ? "is-differin-night" : ""}">
+    <div class="day-card ${extraClass || ""} ${isToday ? "is-today" : ""} ${differinNight ? "is-differin-night" : ""} ${dayPhotos ? "has-photo" : ""}">
       <div class="day-card-header">
         <span>${isDayView ? formatDayHeadingLong(date) : formatDayHeading(date)} ${milestone && !isDayView ? "📋" : ""}</span>
         ${isToday ? '<span class="today-tag">Today</span>' : ""}
@@ -386,9 +386,10 @@ function renderMonthView(container) {
     const hasMilestone = MILESTONES.some(m => m.date === dateToISO(cellDate));
     const differinNight = isDifferinNight(cellDate);
     const isPast = cellDate < today;
+    const hasPhoto = !!photos[dateToISO(cellDate)];
 
     cellsHtml += `
-      <button type="button" class="month-cell ${inMonth ? "" : "is-outside"} ${isSameDay(cellDate, today) ? "is-today" : ""} ${hasMilestone ? "has-milestone" : ""} ${differinNight ? "is-differin" : ""} ${isPast ? "is-past" : ""}" data-date="${cellDate.getTime()}">
+      <button type="button" class="month-cell ${inMonth ? "" : "is-outside"} ${isSameDay(cellDate, today) ? "is-today" : ""} ${hasMilestone ? "has-milestone" : ""} ${differinNight ? "is-differin" : ""} ${isPast ? "is-past" : ""} ${hasPhoto ? "has-photo" : ""}" data-date="${cellDate.getTime()}">
         <span>${cellDate.getDate()}${hasMilestone ? " 📋" : ""}</span>
         <span class="month-cell-dots">
           ${hasMorning ? '<span class="dot dot-am"></span>' : ""}
