@@ -591,6 +591,50 @@ h2:first-of-type { margin-top: 4px; }
   text-align: center;
 }
 
+.camera-content {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  background: black;
+  border-radius: 16px 16px 0 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+#camera-video {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  display: block;
+  background: black;
+}
+.camera-guide {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: calc(100% - 76px);
+  pointer-events: none;
+}
+.camera-guide ellipse {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.75);
+  stroke-width: 2;
+  stroke-dasharray: 6 6;
+}
+.camera-guide line {
+  stroke: rgba(255, 255, 255, 0.5);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+.camera-actions {
+  display: flex;
+  gap: 10px;
+  padding: 16px;
+  background: black;
+}
+.camera-actions button { flex: 1; }
+
 .compare-section { margin-top: 12px; }
 .compare-row {
   display: flex;

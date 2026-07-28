@@ -683,16 +683,12 @@ async function compressImage(file) {
   return dataUrl;
 }
 
-document.getElementById("photo-file-input").addEventListener("change", async e => {
-  const file = e.target.files[0];
-  e.target.value = "";
-  if (!file || !photosCollectionRef) return;
-
+async function savePhotoBlob(blob) {
+  if (!photosCollectionRef) return;
   const statusEl = document.getElementById("photo-upload-status");
   statusEl.textContent = "Processing photo...";
-
   try {
-    const dataUrl = await compressImage(file);
+    const dataUrl = await compressImage(blob);
     const iso = todayISO();
     await setDoc(doc(photosCollectionRef, iso), { dataUrl, uploadedAt: new Date().toISOString() });
     statusEl.textContent = "Saved today's photo.";
@@ -700,6 +696,55 @@ document.getElementById("photo-file-input").addEventListener("change", async e =
     console.error(err);
     statusEl.textContent = "Couldn't process that photo — try again.";
   }
+}
+
+document.getElementById("photo-file-input").addEventListener("change", e => {
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  savePhotoBlob(file);
+});
+
+// ---- Custom camera view with alignment guide ----
+let cameraStream = null;
+
+async function openCamera() {
+  if (!photosCollectionRef) return;
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    document.getElementById("photo-file-input").click();
+    return;
+  }
+  try {
+    cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+    document.getElementById("camera-video").srcObject = cameraStream;
+    document.getElementById("camera-view").classList.remove("hidden");
+  } catch (err) {
+    console.error(err);
+    document.getElementById("photo-file-input").click();
+  }
+}
+
+function closeCamera() {
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(track => track.stop());
+    cameraStream = null;
+  }
+  document.getElementById("camera-view").classList.add("hidden");
+}
+
+document.getElementById("open-camera-btn").addEventListener("click", openCamera);
+document.getElementById("camera-cancel-btn").addEventListener("click", closeCamera);
+
+document.getElementById("camera-capture-btn").addEventListener("click", () => {
+  const video = document.getElementById("camera-video");
+  const canvas = document.createElement("canvas");
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext("2d").drawImage(video, 0, 0);
+  canvas.toBlob(blob => {
+    closeCamera();
+    if (blob) savePhotoBlob(blob);
+  }, "image/jpeg", 0.92);
 });
 
 function renderPhotosTab() {

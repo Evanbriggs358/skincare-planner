@@ -157,9 +157,24 @@
 
   <!-- PHOTOS TAB -->
   <section id="tab-photos" class="tab-panel">
-    <label for="photo-file-input" class="primary-btn photo-upload-label">📷 Add today's photo</label>
+    <button id="open-camera-btn" class="primary-btn">📷 Add today's photo</button>
     <input type="file" id="photo-file-input" accept="image/*" capture="user" class="visually-hidden">
     <p id="photo-upload-status" class="gate-status"></p>
+
+    <!-- Custom camera view with alignment guide -->
+    <div id="camera-view" class="modal hidden">
+      <div class="camera-content">
+        <video id="camera-video" autoplay playsinline muted></video>
+        <svg id="camera-guide" class="camera-guide" viewBox="0 0 300 400" preserveAspectRatio="xMidYMid meet">
+          <ellipse cx="150" cy="190" rx="95" ry="135" />
+          <line x1="55" y1="165" x2="245" y2="165" />
+        </svg>
+        <div class="camera-actions">
+          <button id="camera-cancel-btn" class="secondary-btn">Cancel</button>
+          <button id="camera-capture-btn" class="primary-btn">Capture</button>
+        </div>
+      </div>
+    </div>
 
     <h2>Compare</h2>
     <p id="compare-empty-note" class="empty-note hidden">Add at least 2 photos to compare.</p>
