@@ -394,10 +394,14 @@ h2:first-of-type { margin-top: 4px; }
 .dot-am { background: var(--accent); }
 .dot-pm { background: var(--accent-dark); }
 .dot-differin { background: var(--danger); }
-.month-cell.has-milestone { border-color: var(--accent-dark); }
 .month-cell.is-differin {
   background: rgba(179, 86, 74, 0.08);
-  border-color: var(--danger);
+}
+.month-cell.is-past {
+  opacity: 0.45;
+}
+.month-cell.is-past.is-outside {
+  opacity: 0.2;
 }
 
 .day-card.is-differin-night { border-left: 4px solid var(--danger); }

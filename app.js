@@ -372,9 +372,10 @@ function renderMonthView(container) {
     const hasEvening = steps.some(s => s.time === "evening" && stepAppliesOnDate(s, cellDate));
     const hasMilestone = MILESTONES.some(m => m.date === dateToISO(cellDate));
     const differinNight = isDifferinNight(cellDate);
+    const isPast = cellDate < today;
 
     cellsHtml += `
-      <button type="button" class="month-cell ${inMonth ? "" : "is-outside"} ${isSameDay(cellDate, today) ? "is-today" : ""} ${hasMilestone ? "has-milestone" : ""} ${differinNight ? "is-differin" : ""}" data-date="${cellDate.getTime()}">
+      <button type="button" class="month-cell ${inMonth ? "" : "is-outside"} ${isSameDay(cellDate, today) ? "is-today" : ""} ${hasMilestone ? "has-milestone" : ""} ${differinNight ? "is-differin" : ""} ${isPast ? "is-past" : ""}" data-date="${cellDate.getTime()}">
         <span>${cellDate.getDate()}${hasMilestone ? " 📋" : ""}</span>
         <span class="month-cell-dots">
           ${hasMorning ? '<span class="dot dot-am"></span>' : ""}
