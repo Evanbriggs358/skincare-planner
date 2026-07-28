@@ -464,6 +464,62 @@ h2:first-of-type { margin-top: 4px; }
   font-size: 0.9rem;
 }
 
+.log-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+.log-actions .primary-btn {
+  margin-top: 0;
+  flex: 1;
+  font-size: 0.85rem;
+  padding: 12px 6px;
+}
+
+.score-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+  width: 100%;
+}
+.score-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.66rem;
+}
+.score-bar-label {
+  width: 58px;
+  flex-shrink: 0;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.score-bar-track {
+  flex: 1;
+  height: 7px;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.score-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+}
+.bar-green { background: #4a9d6e; }
+.bar-yellow { background: #d8a940; }
+.bar-red { background: var(--danger); }
+.bar-neutral { background: var(--border); }
+.score-bar-value {
+  width: 24px;
+  text-align: right;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
 .question-block {
   margin-top: 14px;
 }

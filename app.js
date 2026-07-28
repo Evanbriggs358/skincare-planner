@@ -340,6 +340,7 @@ function buildDayCardHtml(date, today, extraClass) {
           ).join("")}
         </div>
       ` : ""}
+      ${isDayView ? buildScoreBarsHtml(dateToISO(date)) : ""}
     </div>
   `;
 }
@@ -464,9 +465,97 @@ const QUESTIONS = [
   { key: "dryness", label: "Dryness", low: "None", high: "Severe" },
   { key: "irritation", label: "Irritation", low: "None", high: "Severe" },
   { key: "breakouts", label: "Breakouts", low: "None", high: "Severe" },
-  { key: "oiliness", label: "Oiliness", low: "None", high: "Severe" },
-  { key: "improvement", label: "Overall improvement", low: "Much worse", high: "Much better" }
+  { key: "inflammation", label: "Inflammation", low: "None", high: "Severe" }
 ];
+
+// The 5 bars shown in Compare / the daily log / Calendar day view.
+// Improvement isn't asked directly — it's computed from check-in history.
+const BAR_CATEGORIES = [
+  { key: "dryness", label: "Dryness", higherIsBetter: false },
+  { key: "irritation", label: "Irritation", higherIsBetter: false },
+  { key: "breakouts", label: "Breakouts", higherIsBetter: false },
+  { key: "inflammation", label: "Inflammation", higherIsBetter: false },
+  { key: "improvement", label: "Improvement", higherIsBetter: true }
+];
+
+function checkinAverage(c) {
+  const inflammation = c.inflammation ?? c.oiliness ?? 3;
+  return (c.dryness + c.irritation + c.breakouts + inflammation) / 4;
+}
+
+function computeImprovement(iso) {
+  const sorted = [...checkins].sort((a, b) => a.date.localeCompare(b.date));
+  const index = sorted.findIndex(c => c.date === iso);
+  if (index === -1) return { state: "none" };
+  if (index === 0) return { state: "no-data" };
+
+  const baseline = sorted[0];
+  const previous = sorted[index - 1];
+  const current = sorted[index];
+
+  const deltaFromBaseline = checkinAverage(baseline) - checkinAverage(current);
+  const deltaFromPrevious = checkinAverage(previous) - checkinAverage(current);
+  const blended = (deltaFromBaseline + deltaFromPrevious) / 2;
+
+  let value;
+  if (blended <= -1) value = 1;
+  else if (blended < -0.25) value = 2;
+  else if (blended <= 0.25) value = 3;
+  else if (blended < 1) value = 4;
+  else value = 5;
+
+  return { state: "computed", value };
+}
+
+function barColorClass(value, higherIsBetter) {
+  const isGood = higherIsBetter ? value >= 4 : value <= 2;
+  const isBad = higherIsBetter ? value <= 2 : value >= 4;
+  if (isGood) return "bar-green";
+  if (isBad) return "bar-red";
+  return "bar-yellow";
+}
+
+function findCheckin(iso) {
+  return checkins.find(c => c.date === iso) || null;
+}
+
+function buildScoreBarsHtml(iso) {
+  const checkin = findCheckin(iso);
+  if (!checkin) return "";
+
+  const rows = BAR_CATEGORIES.map(cat => {
+    if (cat.key === "improvement") {
+      const improvement = computeImprovement(iso);
+      if (improvement.state === "no-data") {
+        return `
+          <div class="score-bar-row">
+            <span class="score-bar-label">${cat.label}</span>
+            <span class="score-bar-track"><span class="score-bar-fill bar-neutral" style="width:100%"></span></span>
+            <span class="score-bar-value">—</span>
+          </div>
+        `;
+      }
+      return scoreBarRowHtml(cat.label, improvement.value, cat.higherIsBetter);
+    }
+    const value = checkin[cat.key] ?? (cat.key === "inflammation" ? checkin.oiliness : null);
+    if (value == null) return "";
+    return scoreBarRowHtml(cat.label, value, cat.higherIsBetter);
+  }).join("");
+
+  return `<div class="score-bars">${rows}</div>`;
+}
+
+function scoreBarRowHtml(label, value, higherIsBetter) {
+  const colorClass = barColorClass(value, higherIsBetter);
+  const widthPct = (value / 5) * 100;
+  return `
+    <div class="score-bar-row">
+      <span class="score-bar-label">${label}</span>
+      <span class="score-bar-track"><span class="score-bar-fill ${colorClass}" style="width:${widthPct}%"></span></span>
+      <span class="score-bar-value">${value}/5</span>
+    </div>
+  `;
+}
 
 let checkins = [];
 let intervalDays = 3;
@@ -513,28 +602,6 @@ function renderCheckinStatus() {
     el.textContent = `Last check-in: ${lastDate}. Next one due in ${daysUntilDue} day${daysUntilDue === 1 ? "" : "s"}.`;
     el.classList.remove("due");
   }
-}
-
-function renderCheckinList() {
-  const list = document.getElementById("checkin-list");
-  list.innerHTML = "";
-
-  if (checkins.length === 0) {
-    list.innerHTML = `<li class="empty-note">No check-ins logged yet.</li>`;
-    return;
-  }
-
-  const sorted = [...checkins].sort((a, b) => b.date.localeCompare(a.date));
-  sorted.forEach(c => {
-    const li = document.createElement("li");
-    li.className = "checkin-item";
-    const values = QUESTIONS.map(q => `${q.label}: ${c[q.key]}/5`).join(" · ");
-    li.innerHTML = `
-      <div class="checkin-date">${c.date}</div>
-      <div class="checkin-values">${values}</div>
-    `;
-    list.appendChild(li);
-  });
 }
 
 function renderCheckinQuestions() {
@@ -589,7 +656,8 @@ document.getElementById("checkin-save-btn").addEventListener("click", () => {
   });
   saveCheckins(checkins);
   renderCheckinStatus();
-  renderCheckinList();
+  renderUnifiedTimeline();
+  renderCompareSection();
   closeCheckinForm();
 });
 
@@ -630,7 +698,9 @@ function buildHistoryText() {
     const sorted = [...checkins].sort((a, b) => a.date.localeCompare(b.date));
     sorted.forEach(c => {
       const values = QUESTIONS.map(q => `${q.label} ${c[q.key]}/5`).join(", ");
-      lines.push(`${c.date}: ${values}`);
+      const improvement = computeImprovement(c.date);
+      const improvementText = improvement.state === "computed" ? `${improvement.value}/5` : "n/a (first check-in)";
+      lines.push(`${c.date}: ${values}, Improvement ${improvementText}`);
     });
   }
 
@@ -792,25 +862,31 @@ document.getElementById("photo-file-input").addEventListener("change", async e =
   advanceSequenceOrFinish();
 });
 
-function renderPhotosTab() {
-  const container = document.getElementById("photo-timeline");
-  const dates = Object.keys(photos).sort().reverse();
+function renderUnifiedTimeline() {
+  const container = document.getElementById("unified-timeline");
+  const dateSet = new Set([...Object.keys(photos), ...checkins.map(c => c.date)]);
+  const dates = Array.from(dateSet).sort().reverse();
 
   if (dates.length === 0) {
-    container.innerHTML = `<p class="empty-note">No photos yet.</p>`;
+    container.innerHTML = `<p class="empty-note">No photos or check-ins yet.</p>`;
     return;
   }
 
   container.innerHTML = dates.map(iso => {
     const day = photos[iso];
-    const thumbs = CAMERA_ANGLES.map(({ key }) => day[key]
-      ? `<img src="${day[key].dataUrl}" alt="${key} photo from ${formatISOShort(iso)}">`
-      : `<div class="angle-missing"></div>`
-    ).join("");
+    const thumbsHtml = day ? `
+      <div class="photo-day-thumbs">
+        ${CAMERA_ANGLES.map(({ key }) => day[key]
+          ? `<img src="${day[key].dataUrl}" alt="${key} photo from ${formatISOShort(iso)}">`
+          : `<div class="angle-missing"></div>`
+        ).join("")}
+      </div>
+    ` : "";
     return `
       <button type="button" class="photo-day-card" data-date="${iso}">
         <div class="photo-day-date">${formatISOShort(iso)}</div>
-        <div class="photo-day-thumbs">${thumbs}</div>
+        ${thumbsHtml}
+        ${buildScoreBarsHtml(iso)}
       </button>
     `;
   }).join("");
@@ -853,6 +929,8 @@ function updateCompareImages() {
   const angle = document.getElementById("compare-angle-select").value;
   setCompareSlot("a", isoA, angle);
   setCompareSlot("b", isoB, angle);
+  document.getElementById("compare-bars-a").innerHTML = buildScoreBarsHtml(isoA);
+  document.getElementById("compare-bars-b").innerHTML = buildScoreBarsHtml(isoB);
 }
 
 document.getElementById("compare-date-a").addEventListener("change", updateCompareImages);
@@ -861,11 +939,23 @@ document.getElementById("compare-angle-select").addEventListener("change", updat
 
 function openLightbox(iso) {
   const day = photos[iso];
-  if (!day) return;
   document.getElementById("lightbox-date").textContent = formatISOShort(iso);
-  document.getElementById("lightbox-img-left").src = day.left?.dataUrl || "";
-  document.getElementById("lightbox-img-center").src = day.center?.dataUrl || "";
-  document.getElementById("lightbox-img-right").src = day.right?.dataUrl || "";
+
+  const anglesEl = document.querySelector(".lightbox-angles");
+  const deleteBtn = document.getElementById("lightbox-delete-btn");
+  if (day) {
+    anglesEl.classList.remove("hidden");
+    deleteBtn.classList.remove("hidden");
+    document.getElementById("lightbox-img-left").src = day.left?.dataUrl || "";
+    document.getElementById("lightbox-img-center").src = day.center?.dataUrl || "";
+    document.getElementById("lightbox-img-right").src = day.right?.dataUrl || "";
+  } else {
+    anglesEl.classList.add("hidden");
+    deleteBtn.classList.add("hidden");
+  }
+
+  document.getElementById("lightbox-bars").innerHTML = buildScoreBarsHtml(iso);
+
   const lightbox = document.getElementById("photo-lightbox");
   lightbox.dataset.date = iso;
   lightbox.classList.remove("hidden");
@@ -888,7 +978,8 @@ document.getElementById("lightbox-delete-btn").addEventListener("click", async (
 function renderAll() {
   render();
   renderCheckinStatus();
-  renderCheckinList();
+  renderUnifiedTimeline();
+  renderCompareSection();
   document.getElementById("interval-input").value = intervalDays;
   const calendarTabActive = document.querySelector('.tab-btn[data-tab="calendar"]').classList.contains("active");
   if (calendarTabActive) renderCalendar();
@@ -961,8 +1052,6 @@ async function connect(hash) {
       if (!photos[data.date]) photos[data.date] = {};
       photos[data.date][data.angle] = data;
     });
-    renderPhotosTab();
-    renderCompareSection();
     renderAll();
   });
 

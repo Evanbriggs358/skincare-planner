@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Skincare Planner</title>
-<link rel="stylesheet" href="style.css?v=3">
+<link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
 
@@ -28,8 +28,7 @@
 <nav class="tabs">
   <button class="tab-btn active" data-tab="routine">Routine</button>
   <button class="tab-btn" data-tab="calendar">Calendar</button>
-  <button class="tab-btn" data-tab="checkin">Check-in</button>
-  <button class="tab-btn" data-tab="photos">Photos</button>
+  <button class="tab-btn" data-tab="log">Log</button>
   <button class="tab-btn" data-tab="history">History</button>
 </nav>
 
@@ -128,8 +127,8 @@
     <div id="calendar-view" class="week-view"></div>
   </section>
 
-  <!-- CHECK-IN TAB -->
-  <section id="tab-checkin" class="tab-panel">
+  <!-- LOG TAB (check-ins + photos, merged) -->
+  <section id="tab-log" class="tab-panel">
     <div id="checkin-status" class="checkin-status"></div>
 
     <label class="interval-row">
@@ -138,27 +137,10 @@
       days
     </label>
 
-    <button id="add-checkin-btn" class="primary-btn">Log a check-in</button>
-
-    <h2>Past check-ins</h2>
-    <ul id="checkin-list" class="step-list"></ul>
-
-    <!-- Check-in form (hidden until needed) -->
-    <div id="checkin-form" class="modal hidden">
-      <div class="modal-content">
-        <h3>How's your skin today?</h3>
-        <div id="checkin-questions"></div>
-        <div class="modal-actions">
-          <button id="checkin-cancel-btn" class="secondary-btn">Cancel</button>
-          <button id="checkin-save-btn" class="primary-btn">Save</button>
-        </div>
-      </div>
+    <div class="log-actions">
+      <button id="open-camera-btn" class="primary-btn">📷 Add today's photos</button>
+      <button id="add-checkin-btn" class="primary-btn">📝 Log a check-in</button>
     </div>
-  </section>
-
-  <!-- PHOTOS TAB -->
-  <section id="tab-photos" class="tab-panel">
-    <button id="open-camera-btn" class="primary-btn">📷 Add today's photos</button>
     <input type="file" id="photo-file-input" accept="image/*" capture="user" class="visually-hidden">
     <p id="photo-upload-status" class="gate-status"></p>
 
@@ -178,6 +160,18 @@
       </div>
     </div>
 
+    <!-- Check-in form (hidden until needed) -->
+    <div id="checkin-form" class="modal hidden">
+      <div class="modal-content">
+        <h3>How's your skin today?</h3>
+        <div id="checkin-questions"></div>
+        <div class="modal-actions">
+          <button id="checkin-cancel-btn" class="secondary-btn">Cancel</button>
+          <button id="checkin-save-btn" class="primary-btn">Save</button>
+        </div>
+      </div>
+    </div>
+
     <h2>Compare</h2>
     <div id="compare-section" class="compare-section">
       <label for="compare-angle-select" class="compare-angle-label">Angle</label>
@@ -191,17 +185,19 @@
           <input type="date" id="compare-date-a">
           <img id="compare-img-a" alt="Earlier photo" class="hidden">
           <p id="compare-empty-a" class="compare-slot-empty">No photo for this date.</p>
+          <div id="compare-bars-a"></div>
         </div>
         <div class="compare-col">
           <input type="date" id="compare-date-b">
           <img id="compare-img-b" alt="Later photo" class="hidden">
           <p id="compare-empty-b" class="compare-slot-empty">No photo for this date.</p>
+          <div id="compare-bars-b"></div>
         </div>
       </div>
     </div>
 
-    <h2>All photos</h2>
-    <div id="photo-timeline" class="photo-timeline"></div>
+    <h2>Daily log</h2>
+    <div id="unified-timeline" class="photo-timeline"></div>
 
     <!-- Lightbox (hidden until a day is opened) -->
     <div id="photo-lightbox" class="modal hidden">
@@ -221,8 +217,9 @@
             <span>Right</span>
           </div>
         </div>
+        <div id="lightbox-bars"></div>
         <div class="modal-actions">
-          <button id="lightbox-delete-btn" class="secondary-btn">Delete day</button>
+          <button id="lightbox-delete-btn" class="secondary-btn">Delete day's photos</button>
           <button id="lightbox-close-btn" class="primary-btn">Close</button>
         </div>
       </div>
@@ -245,6 +242,6 @@
 
 </div><!-- /#app-content -->
 
-<script type="module" src="app.js?v=4"></script>
+<script type="module" src="app.js?v=5"></script>
 </body>
 </html>
