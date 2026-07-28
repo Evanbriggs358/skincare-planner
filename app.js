@@ -350,7 +350,10 @@ function renderDayView(container) {
   today.setHours(0, 0, 0, 0);
   container.innerHTML = buildDayCardHtml(calendarDate, today, "day-view-card");
   container.querySelectorAll(".day-photo-thumb").forEach(btn => {
-    btn.addEventListener("click", () => openLightbox(btn.dataset.date));
+    btn.addEventListener("click", () => {
+      const img = btn.querySelector("img");
+      if (img) openFullscreenViewer(img.src);
+    });
   });
 }
 
@@ -894,7 +897,50 @@ function renderUnifiedTimeline() {
   container.querySelectorAll(".photo-day-card").forEach(btn => {
     btn.addEventListener("click", () => openLightbox(btn.dataset.date));
   });
+  container.querySelectorAll(".photo-day-thumbs img").forEach(img => {
+    img.addEventListener("click", e => {
+      e.stopPropagation();
+      openFullscreenViewer(img.src);
+    });
+  });
 }
+
+// ---- Full-screen photo viewer ----
+function openFullscreenViewer(dataUrl) {
+  if (!dataUrl) return;
+  document.getElementById("fullscreen-viewer-img").src = dataUrl;
+  document.getElementById("fullscreen-viewer").classList.remove("hidden");
+}
+
+function closeFullscreenViewer() {
+  document.getElementById("fullscreen-viewer").classList.add("hidden");
+  document.getElementById("fullscreen-viewer-img").src = "";
+}
+
+document.getElementById("fullscreen-viewer").addEventListener("click", closeFullscreenViewer);
+document.getElementById("fullscreen-close-btn").addEventListener("click", e => {
+  e.stopPropagation();
+  closeFullscreenViewer();
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") closeFullscreenViewer();
+});
+
+document.getElementById("compare-img-a").addEventListener("click", () => {
+  const img = document.getElementById("compare-img-a");
+  if (!img.classList.contains("hidden")) openFullscreenViewer(img.src);
+});
+document.getElementById("compare-img-b").addEventListener("click", () => {
+  const img = document.getElementById("compare-img-b");
+  if (!img.classList.contains("hidden")) openFullscreenViewer(img.src);
+});
+
+["left", "center", "right"].forEach(angle => {
+  document.getElementById(`lightbox-img-${angle}`).addEventListener("click", () => {
+    const img = document.getElementById(`lightbox-img-${angle}`);
+    if (img.src) openFullscreenViewer(img.src);
+  });
+});
 
 function renderCompareSection() {
   const dates = Object.keys(photos).sort();

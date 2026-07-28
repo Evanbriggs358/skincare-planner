@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Skincare Planner</title>
-<link rel="stylesheet" href="style.css?v=5">
+<link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
 
@@ -59,57 +59,6 @@
       </ul>
     </div>
 
-    <!-- Add/Edit step form (hidden until needed) -->
-    <div id="step-form" class="modal hidden">
-      <div class="modal-content">
-        <h3 id="step-form-title">Add a step</h3>
-
-        <label for="step-time">When</label>
-        <select id="step-time">
-          <option value="morning">Morning</option>
-          <option value="evening">Evening</option>
-        </select>
-
-        <label for="step-product">Product name</label>
-        <input type="text" id="step-product" placeholder="e.g. Salicylic acid cleanser">
-
-        <label>How often</label>
-        <div class="freq-choice">
-          <label><input type="radio" name="freq-type" value="daily" checked> Every day</label>
-          <label><input type="radio" name="freq-type" value="days"> Specific days</label>
-          <label><input type="radio" name="freq-type" value="everyOther"> Every other day</label>
-        </div>
-
-        <div id="day-picker" class="day-picker hidden">
-          <label><input type="checkbox" value="0"> Sun</label>
-          <label><input type="checkbox" value="1"> Mon</label>
-          <label><input type="checkbox" value="2"> Tue</label>
-          <label><input type="checkbox" value="3"> Wed</label>
-          <label><input type="checkbox" value="4"> Thu</label>
-          <label><input type="checkbox" value="5"> Fri</label>
-          <label><input type="checkbox" value="6"> Sat</label>
-        </div>
-
-        <div id="everyother-picker" class="hidden">
-          <label for="everyother-date">Starting from</label>
-          <input type="date" id="everyother-date">
-        </div>
-
-        <label>Active date range (optional)</label>
-        <div class="date-range-row">
-          <input type="date" id="step-start-date">
-          <span>to</span>
-          <input type="date" id="step-end-date">
-        </div>
-        <p class="field-hint">Leave blank for "always." Use this for a step that only applies during a specific phase.</p>
-
-        <div class="modal-actions">
-          <button id="step-cancel-btn" class="secondary-btn">Cancel</button>
-          <button id="step-save-btn" class="primary-btn">Save</button>
-        </div>
-      </div>
-    </div>
-
   </section>
 
   <!-- CALENDAR TAB -->
@@ -144,34 +93,6 @@
     <input type="file" id="photo-file-input" accept="image/*" capture="user" class="visually-hidden">
     <p id="photo-upload-status" class="gate-status"></p>
 
-    <!-- Custom camera view with alignment guide -->
-    <div id="camera-view" class="modal hidden">
-      <div class="camera-content">
-        <div id="camera-step-label" class="camera-step-label"></div>
-        <video id="camera-video" autoplay playsinline muted></video>
-        <svg id="camera-guide" class="camera-guide" viewBox="0 0 300 400" preserveAspectRatio="xMidYMid meet">
-          <ellipse cx="150" cy="190" rx="95" ry="135" />
-          <line x1="55" y1="165" x2="245" y2="165" />
-        </svg>
-        <div class="camera-actions">
-          <button id="camera-cancel-btn" class="secondary-btn">Cancel</button>
-          <button id="camera-capture-btn" class="primary-btn">Capture</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Check-in form (hidden until needed) -->
-    <div id="checkin-form" class="modal hidden">
-      <div class="modal-content">
-        <h3>How's your skin today?</h3>
-        <div id="checkin-questions"></div>
-        <div class="modal-actions">
-          <button id="checkin-cancel-btn" class="secondary-btn">Cancel</button>
-          <button id="checkin-save-btn" class="primary-btn">Save</button>
-        </div>
-      </div>
-    </div>
-
     <h2>Compare</h2>
     <div id="compare-section" class="compare-section">
       <label for="compare-angle-select" class="compare-angle-label">Angle</label>
@@ -198,32 +119,6 @@
 
     <h2>Daily log</h2>
     <div id="unified-timeline" class="photo-timeline"></div>
-
-    <!-- Lightbox (hidden until a day is opened) -->
-    <div id="photo-lightbox" class="modal hidden">
-      <div class="modal-content lightbox-content">
-        <div id="lightbox-date" class="lightbox-date"></div>
-        <div class="lightbox-angles">
-          <div class="lightbox-angle-col">
-            <img id="lightbox-img-left" src="" alt="Left side">
-            <span>Left</span>
-          </div>
-          <div class="lightbox-angle-col">
-            <img id="lightbox-img-center" src="" alt="Straight on">
-            <span>Center</span>
-          </div>
-          <div class="lightbox-angle-col">
-            <img id="lightbox-img-right" src="" alt="Right side">
-            <span>Right</span>
-          </div>
-        </div>
-        <div id="lightbox-bars"></div>
-        <div class="modal-actions">
-          <button id="lightbox-delete-btn" class="secondary-btn">Delete day's photos</button>
-          <button id="lightbox-close-btn" class="primary-btn">Close</button>
-        </div>
-      </div>
-    </div>
   </section>
 
   <!-- HISTORY TAB -->
@@ -240,8 +135,121 @@
 
 </main>
 
+<!-- Modals below live outside the tab panels so they display no matter which tab is active -->
+
+<!-- Add/Edit step form (hidden until needed) -->
+<div id="step-form" class="modal hidden">
+  <div class="modal-content">
+    <h3 id="step-form-title">Add a step</h3>
+
+    <label for="step-time">When</label>
+    <select id="step-time">
+      <option value="morning">Morning</option>
+      <option value="evening">Evening</option>
+    </select>
+
+    <label for="step-product">Product name</label>
+    <input type="text" id="step-product" placeholder="e.g. Salicylic acid cleanser">
+
+    <label>How often</label>
+    <div class="freq-choice">
+      <label><input type="radio" name="freq-type" value="daily" checked> Every day</label>
+      <label><input type="radio" name="freq-type" value="days"> Specific days</label>
+      <label><input type="radio" name="freq-type" value="everyOther"> Every other day</label>
+    </div>
+
+    <div id="day-picker" class="day-picker hidden">
+      <label><input type="checkbox" value="0"> Sun</label>
+      <label><input type="checkbox" value="1"> Mon</label>
+      <label><input type="checkbox" value="2"> Tue</label>
+      <label><input type="checkbox" value="3"> Wed</label>
+      <label><input type="checkbox" value="4"> Thu</label>
+      <label><input type="checkbox" value="5"> Fri</label>
+      <label><input type="checkbox" value="6"> Sat</label>
+    </div>
+
+    <div id="everyother-picker" class="hidden">
+      <label for="everyother-date">Starting from</label>
+      <input type="date" id="everyother-date">
+    </div>
+
+    <label>Active date range (optional)</label>
+    <div class="date-range-row">
+      <input type="date" id="step-start-date">
+      <span>to</span>
+      <input type="date" id="step-end-date">
+    </div>
+    <p class="field-hint">Leave blank for "always." Use this for a step that only applies during a specific phase.</p>
+
+    <div class="modal-actions">
+      <button id="step-cancel-btn" class="secondary-btn">Cancel</button>
+      <button id="step-save-btn" class="primary-btn">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Custom camera view with alignment guide -->
+<div id="camera-view" class="modal hidden">
+  <div class="camera-content">
+    <div id="camera-step-label" class="camera-step-label"></div>
+    <video id="camera-video" autoplay playsinline muted></video>
+    <svg id="camera-guide" class="camera-guide" viewBox="0 0 300 400" preserveAspectRatio="xMidYMid meet">
+      <ellipse cx="150" cy="190" rx="95" ry="135" />
+      <line x1="55" y1="165" x2="245" y2="165" />
+    </svg>
+    <div class="camera-actions">
+      <button id="camera-cancel-btn" class="secondary-btn">Cancel</button>
+      <button id="camera-capture-btn" class="primary-btn">Capture</button>
+    </div>
+  </div>
+</div>
+
+<!-- Check-in form (hidden until needed) -->
+<div id="checkin-form" class="modal hidden">
+  <div class="modal-content">
+    <h3>How's your skin today?</h3>
+    <div id="checkin-questions"></div>
+    <div class="modal-actions">
+      <button id="checkin-cancel-btn" class="secondary-btn">Cancel</button>
+      <button id="checkin-save-btn" class="primary-btn">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Lightbox (hidden until a day is opened) -->
+<div id="photo-lightbox" class="modal hidden">
+  <div class="modal-content lightbox-content">
+    <div id="lightbox-date" class="lightbox-date"></div>
+    <div class="lightbox-angles">
+      <div class="lightbox-angle-col">
+        <img id="lightbox-img-left" src="" alt="Left side">
+        <span>Left</span>
+      </div>
+      <div class="lightbox-angle-col">
+        <img id="lightbox-img-center" src="" alt="Straight on">
+        <span>Center</span>
+      </div>
+      <div class="lightbox-angle-col">
+        <img id="lightbox-img-right" src="" alt="Right side">
+        <span>Right</span>
+      </div>
+    </div>
+    <div id="lightbox-bars"></div>
+    <div class="modal-actions">
+      <button id="lightbox-delete-btn" class="secondary-btn">Delete day's photos</button>
+      <button id="lightbox-close-btn" class="primary-btn">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Full-screen photo viewer -->
+<div id="fullscreen-viewer" class="fullscreen-viewer hidden">
+  <button id="fullscreen-close-btn" class="fullscreen-close-btn" aria-label="Close">&times;</button>
+  <img id="fullscreen-viewer-img" src="" alt="Enlarged photo">
+</div>
+
 </div><!-- /#app-content -->
 
-<script type="module" src="app.js?v=5"></script>
+<script type="module" src="app.js?v=6"></script>
 </body>
 </html>

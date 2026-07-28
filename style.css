@@ -154,6 +154,41 @@ h2:first-of-type { margin-top: 4px; }
 }
 .modal.hidden { display: none; }
 
+.fullscreen-viewer {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.92);
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.fullscreen-viewer img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.fullscreen-close-btn {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 2rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 6px;
+}
+
+.photo-day-thumbs img,
+.compare-col img,
+.day-photo-thumb img,
+.lightbox-angle-col img {
+  cursor: zoom-in;
+}
+
 .modal-content {
   background: var(--surface);
   width: 100%;
