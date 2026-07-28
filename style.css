@@ -393,7 +393,22 @@ h2:first-of-type { margin-top: 4px; }
 }
 .dot-am { background: var(--accent); }
 .dot-pm { background: var(--accent-dark); }
+.dot-differin { background: var(--danger); }
 .month-cell.has-milestone { border-color: var(--accent-dark); }
+.month-cell.is-differin {
+  background: rgba(179, 86, 74, 0.08);
+  border-color: var(--danger);
+}
+
+.day-card.is-differin-night { border-left: 4px solid var(--danger); }
+.differin-tag {
+  color: var(--danger);
+  font-weight: 600;
+  font-size: 0.75rem;
+  margin-left: 6px;
+  text-transform: none;
+  letter-spacing: normal;
+}
 
 .milestone-banner {
   background: #fdf0e8;

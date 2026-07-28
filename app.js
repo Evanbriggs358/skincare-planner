@@ -281,6 +281,10 @@ function stepAppliesOnDate(step, date) {
   return false;
 }
 
+function isDifferinNight(date) {
+  return steps.some(s => s.time === "evening" && /^differin/i.test(s.product.trim()) && stepAppliesOnDate(s, date));
+}
+
 function startOfWeek(date) {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
@@ -313,17 +317,18 @@ function buildDayCardHtml(date, today, extraClass) {
   const isToday = isSameDay(date, today);
   const milestone = MILESTONES.find(m => m.date === dateToISO(date));
   const isDayView = !!extraClass;
+  const differinNight = isDifferinNight(date);
 
   return `
     ${milestone && isDayView ? `<div class="milestone-banner">📋 ${escapeHtml(milestone.label)}</div>` : ""}
-    <div class="day-card ${extraClass || ""} ${isToday ? "is-today" : ""}">
+    <div class="day-card ${extraClass || ""} ${isToday ? "is-today" : ""} ${differinNight ? "is-differin-night" : ""}">
       <div class="day-card-header">
         <span>${isDayView ? formatDayHeadingLong(date) : formatDayHeading(date)} ${milestone && !isDayView ? "📋" : ""}</span>
         ${isToday ? '<span class="today-tag">Today</span>' : ""}
       </div>
       <div class="day-section-label">Morning</div>
       ${renderDaySteps(morning)}
-      <div class="day-section-label">Evening</div>
+      <div class="day-section-label">Evening ${differinNight ? '<span class="differin-tag">🔴 Differin night</span>' : ""}</div>
       ${renderDaySteps(evening)}
     </div>
   `;
@@ -366,13 +371,14 @@ function renderMonthView(container) {
     const hasMorning = steps.some(s => s.time === "morning" && stepAppliesOnDate(s, cellDate));
     const hasEvening = steps.some(s => s.time === "evening" && stepAppliesOnDate(s, cellDate));
     const hasMilestone = MILESTONES.some(m => m.date === dateToISO(cellDate));
+    const differinNight = isDifferinNight(cellDate);
 
     cellsHtml += `
-      <button type="button" class="month-cell ${inMonth ? "" : "is-outside"} ${isSameDay(cellDate, today) ? "is-today" : ""} ${hasMilestone ? "has-milestone" : ""}" data-date="${cellDate.getTime()}">
+      <button type="button" class="month-cell ${inMonth ? "" : "is-outside"} ${isSameDay(cellDate, today) ? "is-today" : ""} ${hasMilestone ? "has-milestone" : ""} ${differinNight ? "is-differin" : ""}" data-date="${cellDate.getTime()}">
         <span>${cellDate.getDate()}${hasMilestone ? " 📋" : ""}</span>
         <span class="month-cell-dots">
           ${hasMorning ? '<span class="dot dot-am"></span>' : ""}
-          ${hasEvening ? '<span class="dot dot-pm"></span>' : ""}
+          ${differinNight ? '<span class="dot dot-differin"></span>' : (hasEvening ? '<span class="dot dot-pm"></span>' : "")}
         </span>
       </button>
     `;
