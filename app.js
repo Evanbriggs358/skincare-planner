@@ -820,43 +820,42 @@ function renderPhotosTab() {
 }
 
 function renderCompareSection() {
-  const section = document.getElementById("compare-section");
-  const emptyNote = document.getElementById("compare-empty-note");
   const dates = Object.keys(photos).sort();
+  const dateA = document.getElementById("compare-date-a");
+  const dateB = document.getElementById("compare-date-b");
 
-  if (dates.length < 2) {
-    section.classList.add("hidden");
-    emptyNote.classList.remove("hidden");
-    return;
-  }
-  emptyNote.classList.add("hidden");
-  section.classList.remove("hidden");
-
-  const selectA = document.getElementById("compare-select-a");
-  const selectB = document.getElementById("compare-select-b");
-  const prevA = selectA.value;
-  const prevB = selectB.value;
-
-  const optionsHtml = dates.map(iso => `<option value="${iso}">${formatISOShort(iso)}</option>`).join("");
-  selectA.innerHTML = optionsHtml;
-  selectB.innerHTML = optionsHtml;
-
-  selectA.value = dates.includes(prevA) ? prevA : dates[0];
-  selectB.value = dates.includes(prevB) ? prevB : dates[dates.length - 1];
+  if (!dateA.value) dateA.value = dates.length ? dates[0] : todayISO();
+  if (!dateB.value) dateB.value = dates.length ? dates[dates.length - 1] : todayISO();
 
   updateCompareImages();
 }
 
-function updateCompareImages() {
-  const isoA = document.getElementById("compare-select-a").value;
-  const isoB = document.getElementById("compare-select-b").value;
-  const angle = document.getElementById("compare-angle-select").value;
-  document.getElementById("compare-img-a").src = photos[isoA]?.[angle]?.dataUrl || "";
-  document.getElementById("compare-img-b").src = photos[isoB]?.[angle]?.dataUrl || "";
+function setCompareSlot(slot, iso, angle) {
+  const img = document.getElementById(`compare-img-${slot}`);
+  const emptyNote = document.getElementById(`compare-empty-${slot}`);
+  const dataUrl = iso ? photos[iso]?.[angle]?.dataUrl : null;
+
+  if (dataUrl) {
+    img.src = dataUrl;
+    img.classList.remove("hidden");
+    emptyNote.classList.add("hidden");
+  } else {
+    img.src = "";
+    img.classList.add("hidden");
+    emptyNote.classList.remove("hidden");
+  }
 }
 
-document.getElementById("compare-select-a").addEventListener("change", updateCompareImages);
-document.getElementById("compare-select-b").addEventListener("change", updateCompareImages);
+function updateCompareImages() {
+  const isoA = document.getElementById("compare-date-a").value;
+  const isoB = document.getElementById("compare-date-b").value;
+  const angle = document.getElementById("compare-angle-select").value;
+  setCompareSlot("a", isoA, angle);
+  setCompareSlot("b", isoB, angle);
+}
+
+document.getElementById("compare-date-a").addEventListener("change", updateCompareImages);
+document.getElementById("compare-date-b").addEventListener("change", updateCompareImages);
 document.getElementById("compare-angle-select").addEventListener("change", updateCompareImages);
 
 function openLightbox(iso) {

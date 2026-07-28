@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Skincare Planner</title>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=2">
 </head>
 <body>
 
@@ -179,8 +179,7 @@
     </div>
 
     <h2>Compare</h2>
-    <p id="compare-empty-note" class="empty-note hidden">Add at least 2 days of photos to compare.</p>
-    <div id="compare-section" class="compare-section hidden">
+    <div id="compare-section" class="compare-section">
       <label for="compare-angle-select" class="compare-angle-label">Angle</label>
       <select id="compare-angle-select">
         <option value="left">Left side</option>
@@ -189,12 +188,14 @@
       </select>
       <div class="compare-row">
         <div class="compare-col">
-          <select id="compare-select-a"></select>
-          <img id="compare-img-a" alt="Earlier photo">
+          <input type="date" id="compare-date-a">
+          <img id="compare-img-a" alt="Earlier photo" class="hidden">
+          <p id="compare-empty-a" class="compare-slot-empty">No photo for this date.</p>
         </div>
         <div class="compare-col">
-          <select id="compare-select-b"></select>
-          <img id="compare-img-b" alt="Later photo">
+          <input type="date" id="compare-date-b">
+          <img id="compare-img-b" alt="Later photo" class="hidden">
+          <p id="compare-empty-b" class="compare-slot-empty">No photo for this date.</p>
         </div>
       </div>
     </div>
@@ -244,6 +245,6 @@
 
 </div><!-- /#app-content -->
 
-<script type="module" src="app.js?v=2"></script>
+<script type="module" src="app.js?v=3"></script>
 </body>
 </html>
