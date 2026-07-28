@@ -44,6 +44,19 @@
     <ul id="evening-list" class="step-list"></ul>
 
     <button id="add-step-btn" class="primary-btn">+ Add a step</button>
+    <button id="import-acne-plan-btn" class="secondary-btn full-width">Import Acne Plan routine (Jul 27 →)</button>
+
+    <div class="rules-note">
+      <h3>Hard rules</h3>
+      <ul>
+        <li>SPF every morning, no exceptions — especially on a retinoid.</li>
+        <li>Never combine Differin with TreeActiv or Sulfur on the same night.</li>
+        <li>Differin: buffered over moisturizer, pea-sized, whole face.</li>
+        <li>Spot treatments go on individual lesions only, never the whole face.</li>
+        <li>No picking — especially blood-filled cysts (scarring/PIE risk).</li>
+        <li>Water temperature: lukewarm only.</li>
+      </ul>
+    </div>
 
     <!-- Add/Edit step form (hidden until needed) -->
     <div id="step-form" class="modal hidden">
@@ -63,6 +76,7 @@
         <div class="freq-choice">
           <label><input type="radio" name="freq-type" value="daily" checked> Every day</label>
           <label><input type="radio" name="freq-type" value="days"> Specific days</label>
+          <label><input type="radio" name="freq-type" value="everyOther"> Every other day</label>
         </div>
 
         <div id="day-picker" class="day-picker hidden">
@@ -74,6 +88,19 @@
           <label><input type="checkbox" value="5"> Fri</label>
           <label><input type="checkbox" value="6"> Sat</label>
         </div>
+
+        <div id="everyother-picker" class="hidden">
+          <label for="everyother-date">Starting from</label>
+          <input type="date" id="everyother-date">
+        </div>
+
+        <label>Active date range (optional)</label>
+        <div class="date-range-row">
+          <input type="date" id="step-start-date">
+          <span>to</span>
+          <input type="date" id="step-end-date">
+        </div>
+        <p class="field-hint">Leave blank for "always." Use this for a step that only applies during a specific phase.</p>
 
         <div class="modal-actions">
           <button id="step-cancel-btn" class="secondary-btn">Cancel</button>

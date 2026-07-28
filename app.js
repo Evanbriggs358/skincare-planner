@@ -30,11 +30,31 @@ function saveSteps(newSteps) {
 }
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+function dateToISO(d) {
+  const copy = new Date(d);
+  copy.setMinutes(copy.getMinutes() - copy.getTimezoneOffset());
+  return copy.toISOString().slice(0, 10);
+}
+
+function formatISOShort(iso) {
+  const [y, m, d] = iso.split("-").map(Number);
+  return `${MONTH_LABELS[m - 1]} ${d}, ${y}`;
+}
 
 function describeFrequency(freq) {
   if (freq.type === "daily") return "Every day";
+  if (freq.type === "everyOther") return `Every other day (from ${formatISOShort(freq.anchorDate)})`;
   const days = freq.days.slice().sort().map(d => DAY_LABELS[d]);
   return days.length ? days.join(", ") : "No days selected";
+}
+
+function describeDateRange(step) {
+  if (!step.startDate && !step.endDate) return "";
+  if (step.startDate && step.endDate) return ` · ${formatISOShort(step.startDate)} – ${formatISOShort(step.endDate)}`;
+  if (step.startDate) return ` · from ${formatISOShort(step.startDate)}`;
+  return ` · through ${formatISOShort(step.endDate)}`;
 }
 
 function render() {
@@ -65,7 +85,7 @@ function renderStepItem(step) {
   li.innerHTML = `
     <div class="step-info">
       <div class="step-name">${escapeHtml(step.product)}</div>
-      <div class="step-freq">${describeFrequency(step.frequency)}</div>
+      <div class="step-freq">${describeFrequency(step.frequency)}${describeDateRange(step)}</div>
     </div>
     <button class="edit-btn">Edit</button>
     <button class="delete-btn">Delete</button>
@@ -94,17 +114,22 @@ const stepTimeSelect = document.getElementById("step-time");
 const stepProductInput = document.getElementById("step-product");
 const dayPicker = document.getElementById("day-picker");
 const dayCheckboxes = dayPicker.querySelectorAll("input[type=checkbox]");
+const everyOtherPicker = document.getElementById("everyother-picker");
+const everyOtherDateInput = document.getElementById("everyother-date");
+const stepStartDateInput = document.getElementById("step-start-date");
+const stepEndDateInput = document.getElementById("step-end-date");
 
 document.getElementById("add-step-btn").addEventListener("click", () => openStepForm(null));
 document.getElementById("step-cancel-btn").addEventListener("click", closeStepForm);
 
 document.querySelectorAll("input[name=freq-type]").forEach(radio => {
-  radio.addEventListener("change", updateDayPickerVisibility);
+  radio.addEventListener("change", updateFrequencyFieldsVisibility);
 });
 
-function updateDayPickerVisibility() {
+function updateFrequencyFieldsVisibility() {
   const selected = document.querySelector("input[name=freq-type]:checked").value;
   dayPicker.classList.toggle("hidden", selected !== "days");
+  everyOtherPicker.classList.toggle("hidden", selected !== "everyOther");
 }
 
 function openStepForm(step) {
@@ -122,7 +147,11 @@ function openStepForm(step) {
       : false;
   });
 
-  updateDayPickerVisibility();
+  everyOtherDateInput.value = step && step.frequency.type === "everyOther" ? step.frequency.anchorDate : "";
+  stepStartDateInput.value = step && step.startDate ? step.startDate : "";
+  stepEndDateInput.value = step && step.endDate ? step.endDate : "";
+
+  updateFrequencyFieldsVisibility();
   stepForm.classList.remove("hidden");
   stepProductInput.focus();
 }
@@ -144,6 +173,12 @@ document.getElementById("step-save-btn").addEventListener("click", () => {
   let frequency;
   if (freqType === "daily") {
     frequency = { type: "daily" };
+  } else if (freqType === "everyOther") {
+    if (!everyOtherDateInput.value) {
+      everyOtherDateInput.focus();
+      return;
+    }
+    frequency = { type: "everyOther", anchorDate: everyOtherDateInput.value };
   } else {
     const days = Array.from(dayCheckboxes)
       .filter(cb => cb.checked)
@@ -151,17 +186,24 @@ document.getElementById("step-save-btn").addEventListener("click", () => {
     frequency = { type: "days", days };
   }
 
+  const startDate = stepStartDateInput.value || null;
+  const endDate = stepEndDateInput.value || null;
+
   if (editingStepId) {
     const step = steps.find(s => s.id === editingStepId);
     step.time = time;
     step.product = product;
     step.frequency = frequency;
+    step.startDate = startDate;
+    step.endDate = endDate;
   } else {
     steps.push({
       id: crypto.randomUUID(),
       time,
       product,
-      frequency
+      frequency,
+      startDate,
+      endDate
     });
   }
 
@@ -170,13 +212,73 @@ document.getElementById("step-save-btn").addEventListener("click", () => {
   closeStepForm();
 });
 
+// ---- Acne Plan routine import ----
+function mkStep(time, product, frequency, startDate, endDate) {
+  return { id: crypto.randomUUID(), time, product, frequency, startDate: startDate || null, endDate: endDate || null };
+}
+
+function buildAcnePlanSteps() {
+  const daily = { type: "daily" };
+  return [
+    // AM — every day
+    mkStep("morning", "The Ordinary Hyaluronic Acid 2% + B5", daily),
+    mkStep("morning", "Anua Azelaic Acid 10% + Hyaluron (AM)", daily),
+    mkStep("morning", "Toleriane Double Repair Moisturizer (AM)", daily),
+    mkStep("morning", "Cicaplast Baume B5 (AM)", daily),
+    mkStep("morning", "Anthelios SPF 50 (Tinted Mineral)", daily),
+    // PM — same every night regardless of Differin
+    mkStep("evening", "The Ordinary Hyaluronic Acid 2% + B5 (PM)", daily),
+    mkStep("evening", "Toleriane Double Repair Moisturizer (PM buffer)", daily),
+    mkStep("evening", "Cicaplast Baume B5 (PM)", daily),
+    // Differin — the 4 ramp phases
+    mkStep("evening", "Differin (Adapalene) — Phase 1: twice weekly", { type: "days", days: [0, 3] }, "2026-07-27", "2026-08-10"),
+    mkStep("evening", "Differin (Adapalene) — Phase 2: every other night", { type: "everyOther", anchorDate: "2026-08-11" }, "2026-08-11", "2026-08-24"),
+    mkStep("evening", "Differin (Adapalene) — Phase 3: most nights", { type: "days", days: [1, 2, 3, 5, 6] }, "2026-08-25", "2026-09-07"),
+    mkStep("evening", "Differin (Adapalene) — Phase 4: nightly", daily, "2026-09-08", null),
+    // Azelaic Acid PM — non-Differin nights only (mirrors the Differin phases; none needed once Differin goes nightly)
+    mkStep("evening", "Anua Azelaic Acid 10+ (PM, non-Differin nights)", { type: "days", days: [1, 2, 4, 5, 6] }, "2026-07-27", "2026-08-10"),
+    mkStep("evening", "Anua Azelaic Acid 10+ (PM, non-Differin nights)", { type: "everyOther", anchorDate: "2026-08-12" }, "2026-08-11", "2026-08-24"),
+    mkStep("evening", "Anua Azelaic Acid 10+ (PM, non-Differin nights)", { type: "days", days: [0, 4] }, "2026-08-25", "2026-09-07"),
+    // TreeActiv — non-Differin nights only, on active cysts
+    mkStep("evening", "TreeActiv Cystic Spot Treatment (non-Differin nights, active cysts only)", { type: "days", days: [1, 2, 4, 5, 6] }, "2026-07-27", "2026-08-10"),
+    mkStep("evening", "TreeActiv Cystic Spot Treatment (non-Differin nights, active cysts only)", { type: "everyOther", anchorDate: "2026-08-12" }, "2026-08-11", "2026-08-24"),
+    mkStep("evening", "TreeActiv Cystic Spot Treatment (non-Differin nights, active cysts only)", { type: "days", days: [0, 4] }, "2026-08-25", "2026-09-07")
+  ];
+}
+
+document.getElementById("import-acne-plan-btn").addEventListener("click", () => {
+  const confirmed = confirm("This will replace your current routine steps with the full Acne Plan routine (Jul 27 onward, including the phased Differin ramp). Continue?");
+  if (!confirmed) return;
+  saveSteps(buildAcnePlanSteps());
+  render();
+});
+
 // ---- Calendar (day / week / month views) ----
+const MILESTONES = [
+  { date: "2026-08-10", label: "Check-in: twice-weekly Differin tolerated well? → advance to every-other-night. Irritated? → hold another week." },
+  { date: "2026-08-24", label: "Check-in: comfortable on every-other-night? → begin tightening toward most nights. Watch for a possible purge peak." },
+  { date: "2026-09-07", label: "Check-in: skin calm and comfortable? → consider moving to nightly. Any irritation? → hold at most-nights." },
+  { date: "2026-09-21", label: "2-month assessment: evaluate texture, breakout frequency, redness, and trend vs. the late-July baseline." }
+];
+
 let calendarView = "week";
 let calendarDate = new Date();
 calendarDate.setHours(0, 0, 0, 0);
 
-function stepAppliesOnDay(step, dayOfWeek) {
-  return step.frequency.type === "daily" || step.frequency.days.includes(dayOfWeek);
+function stepAppliesOnDate(step, date) {
+  const iso = dateToISO(date);
+  if (step.startDate && iso < step.startDate) return false;
+  if (step.endDate && iso > step.endDate) return false;
+
+  const freq = step.frequency;
+  if (freq.type === "daily") return true;
+  if (freq.type === "days") return freq.days.includes(date.getDay());
+  if (freq.type === "everyOther") {
+    const anchor = new Date(freq.anchorDate + "T00:00:00");
+    const diffDays = Math.round((date - anchor) / (1000 * 60 * 60 * 24));
+    return ((diffDays % 2) + 2) % 2 === 0;
+  }
+  return false;
 }
 
 function startOfWeek(date) {
@@ -206,15 +308,17 @@ function renderDaySteps(list) {
 }
 
 function buildDayCardHtml(date, today, extraClass) {
-  const dayOfWeek = date.getDay();
-  const morning = steps.filter(s => s.time === "morning" && stepAppliesOnDay(s, dayOfWeek));
-  const evening = steps.filter(s => s.time === "evening" && stepAppliesOnDay(s, dayOfWeek));
+  const morning = steps.filter(s => s.time === "morning" && stepAppliesOnDate(s, date));
+  const evening = steps.filter(s => s.time === "evening" && stepAppliesOnDate(s, date));
   const isToday = isSameDay(date, today);
+  const milestone = MILESTONES.find(m => m.date === dateToISO(date));
+  const isDayView = !!extraClass;
 
   return `
+    ${milestone && isDayView ? `<div class="milestone-banner">📋 ${escapeHtml(milestone.label)}</div>` : ""}
     <div class="day-card ${extraClass || ""} ${isToday ? "is-today" : ""}">
       <div class="day-card-header">
-        <span>${extraClass ? formatDayHeadingLong(date) : formatDayHeading(date)}</span>
+        <span>${isDayView ? formatDayHeadingLong(date) : formatDayHeading(date)} ${milestone && !isDayView ? "📋" : ""}</span>
         ${isToday ? '<span class="today-tag">Today</span>' : ""}
       </div>
       <div class="day-section-label">Morning</div>
@@ -259,13 +363,13 @@ function renderMonthView(container) {
     const cellDate = new Date(gridStart);
     cellDate.setDate(cellDate.getDate() + i);
     const inMonth = cellDate.getMonth() === month;
-    const dayOfWeek = cellDate.getDay();
-    const hasMorning = steps.some(s => s.time === "morning" && stepAppliesOnDay(s, dayOfWeek));
-    const hasEvening = steps.some(s => s.time === "evening" && stepAppliesOnDay(s, dayOfWeek));
+    const hasMorning = steps.some(s => s.time === "morning" && stepAppliesOnDate(s, cellDate));
+    const hasEvening = steps.some(s => s.time === "evening" && stepAppliesOnDate(s, cellDate));
+    const hasMilestone = MILESTONES.some(m => m.date === dateToISO(cellDate));
 
     cellsHtml += `
-      <button type="button" class="month-cell ${inMonth ? "" : "is-outside"} ${isSameDay(cellDate, today) ? "is-today" : ""}" data-date="${cellDate.getTime()}">
-        <span>${cellDate.getDate()}</span>
+      <button type="button" class="month-cell ${inMonth ? "" : "is-outside"} ${isSameDay(cellDate, today) ? "is-today" : ""} ${hasMilestone ? "has-milestone" : ""}" data-date="${cellDate.getTime()}">
+        <span>${cellDate.getDate()}${hasMilestone ? " 📋" : ""}</span>
         <span class="month-cell-dots">
           ${hasMorning ? '<span class="dot dot-am"></span>' : ""}
           ${hasEvening ? '<span class="dot dot-pm"></span>' : ""}
@@ -358,9 +462,7 @@ function saveInterval(days) {
 }
 
 function todayISO() {
-  const d = new Date();
-  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-  return d.toISOString().slice(0, 10);
+  return dateToISO(new Date());
 }
 
 function daysBetween(isoDateA, isoDateB) {
@@ -487,7 +589,7 @@ function buildHistoryText() {
   if (morning.length === 0) {
     lines.push("(none)");
   } else {
-    morning.forEach(s => lines.push(`- ${s.product} (${describeFrequency(s.frequency)})`));
+    morning.forEach(s => lines.push(`- ${s.product} (${describeFrequency(s.frequency)}${describeDateRange(s)})`));
   }
   lines.push("");
 
@@ -496,7 +598,7 @@ function buildHistoryText() {
   if (evening.length === 0) {
     lines.push("(none)");
   } else {
-    evening.forEach(s => lines.push(`- ${s.product} (${describeFrequency(s.frequency)})`));
+    evening.forEach(s => lines.push(`- ${s.product} (${describeFrequency(s.frequency)}${describeDateRange(s)})`));
   }
   lines.push("");
 

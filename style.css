@@ -213,6 +213,40 @@ h2:first-of-type { margin-top: 4px; }
 }
 .modal-actions .primary-btn { margin-top: 0; }
 
+.date-range-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.date-range-row input[type="date"] {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: white;
+  color: var(--text);
+}
+.date-range-row span {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.field-hint {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+#everyother-picker input[type="date"] {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  margin-top: 4px;
+}
+#everyother-picker.hidden { display: none; }
+
 /* ---- Calendar / week view ---- */
 .view-toggle {
   display: flex;
@@ -359,6 +393,18 @@ h2:first-of-type { margin-top: 4px; }
 }
 .dot-am { background: var(--accent); }
 .dot-pm { background: var(--accent-dark); }
+.month-cell.has-milestone { border-color: var(--accent-dark); }
+
+.milestone-banner {
+  background: #fdf0e8;
+  border: 1px solid var(--accent);
+  color: var(--accent-dark);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
 
 /* ---- Check-in ---- */
 .checkin-status {
@@ -485,6 +531,27 @@ h2:first-of-type { margin-top: 4px; }
   display: block;
   width: 100%;
   margin-top: 24px;
+}
+
+.rules-note {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-top: 24px;
+}
+.rules-note h3 {
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+}
+.rules-note ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 0.85rem;
+  line-height: 1.5;
 }
 
 .history-preview {
