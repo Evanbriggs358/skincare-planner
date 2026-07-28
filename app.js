@@ -960,7 +960,12 @@ fullscreenViewerEl.addEventListener("touchstart", e => {
   fullscreenTouchStartX = e.touches[0].clientX;
 }, { passive: true });
 
-fullscreenViewerEl.addEventListener("touchend", e => {
+fullscreenViewerEl.addEventListener("touchmove", e => {
+  if (fullscreenTouchStartX === null) return;
+  e.preventDefault();
+}, { passive: false });
+
+function finishFullscreenTouch(e) {
   if (fullscreenTouchStartX === null) return;
   const deltaX = e.changedTouches[0].clientX - fullscreenTouchStartX;
   fullscreenTouchStartX = null;
@@ -972,7 +977,10 @@ fullscreenViewerEl.addEventListener("touchend", e => {
     fullscreenSwiped = true;
     showNextFullscreenImage();
   }
-});
+}
+
+fullscreenViewerEl.addEventListener("touchend", finishFullscreenTouch);
+fullscreenViewerEl.addEventListener("touchcancel", finishFullscreenTouch);
 
 fullscreenViewerEl.addEventListener("click", () => {
   if (fullscreenSwiped) {
