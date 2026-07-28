@@ -349,11 +349,10 @@ function renderDayView(container) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   container.innerHTML = buildDayCardHtml(calendarDate, today, "day-view-card");
-  container.querySelectorAll(".day-photo-thumb").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const img = btn.querySelector("img");
-      if (img) openFullscreenViewer(img.src);
-    });
+  const dayPhotos = photos[dateToISO(calendarDate)];
+  const group = dayPhotos ? dayPhotoGroup(dayPhotos) : [];
+  container.querySelectorAll(".day-photo-thumb").forEach((btn, idx) => {
+    btn.addEventListener("click", () => openFullscreenViewer(group, idx));
   });
 }
 
@@ -894,51 +893,140 @@ function renderUnifiedTimeline() {
     `;
   }).join("");
 
-  container.querySelectorAll(".photo-day-card").forEach(btn => {
-    btn.addEventListener("click", () => openLightbox(btn.dataset.date));
-  });
-  container.querySelectorAll(".photo-day-thumbs img").forEach(img => {
-    img.addEventListener("click", e => {
-      e.stopPropagation();
-      openFullscreenViewer(img.src);
+  container.querySelectorAll(".photo-day-card").forEach(cardBtn => {
+    cardBtn.addEventListener("click", () => openLightbox(cardBtn.dataset.date));
+    const day = photos[cardBtn.dataset.date];
+    if (!day) return;
+    const group = dayPhotoGroup(day);
+    cardBtn.querySelectorAll(".photo-day-thumbs img").forEach((img, idx) => {
+      img.addEventListener("click", e => {
+        e.stopPropagation();
+        openFullscreenViewer(group, idx);
+      });
     });
   });
 }
 
 // ---- Full-screen photo viewer ----
-function openFullscreenViewer(dataUrl) {
-  if (!dataUrl) return;
-  document.getElementById("fullscreen-viewer-img").src = dataUrl;
+function dayPhotoGroup(day) {
+  return CAMERA_ANGLES.filter(({ key }) => day[key]).map(({ key }) => day[key].dataUrl);
+}
+
+let fullscreenGroup = [];
+let fullscreenIndex = 0;
+
+function openFullscreenViewer(group, startIndex) {
+  const list = Array.isArray(group) ? group : [group];
+  if (!list.length || !list[0]) return;
+  fullscreenGroup = list;
+  fullscreenIndex = startIndex || 0;
+  showFullscreenImage();
   document.getElementById("fullscreen-viewer").classList.remove("hidden");
+}
+
+function showFullscreenImage() {
+  document.getElementById("fullscreen-viewer-img").src = fullscreenGroup[fullscreenIndex];
+  const multi = fullscreenGroup.length > 1;
+  document.getElementById("fullscreen-prev-btn").classList.toggle("hidden", !multi);
+  document.getElementById("fullscreen-next-btn").classList.toggle("hidden", !multi);
+  document.getElementById("fullscreen-counter").textContent = multi ? `${fullscreenIndex + 1} / ${fullscreenGroup.length}` : "";
+}
+
+function showNextFullscreenImage() {
+  if (fullscreenGroup.length < 2) return;
+  fullscreenIndex = (fullscreenIndex + 1) % fullscreenGroup.length;
+  showFullscreenImage();
+}
+
+function showPrevFullscreenImage() {
+  if (fullscreenGroup.length < 2) return;
+  fullscreenIndex = (fullscreenIndex - 1 + fullscreenGroup.length) % fullscreenGroup.length;
+  showFullscreenImage();
 }
 
 function closeFullscreenViewer() {
   document.getElementById("fullscreen-viewer").classList.add("hidden");
   document.getElementById("fullscreen-viewer-img").src = "";
+  fullscreenGroup = [];
+  fullscreenIndex = 0;
 }
 
-document.getElementById("fullscreen-viewer").addEventListener("click", closeFullscreenViewer);
+const fullscreenViewerEl = document.getElementById("fullscreen-viewer");
+let fullscreenSwiped = false;
+let fullscreenTouchStartX = null;
+
+fullscreenViewerEl.addEventListener("touchstart", e => {
+  fullscreenSwiped = false;
+  fullscreenTouchStartX = e.touches[0].clientX;
+}, { passive: true });
+
+fullscreenViewerEl.addEventListener("touchend", e => {
+  if (fullscreenTouchStartX === null) return;
+  const deltaX = e.changedTouches[0].clientX - fullscreenTouchStartX;
+  fullscreenTouchStartX = null;
+  const SWIPE_THRESHOLD = 40;
+  if (deltaX > SWIPE_THRESHOLD) {
+    fullscreenSwiped = true;
+    showPrevFullscreenImage();
+  } else if (deltaX < -SWIPE_THRESHOLD) {
+    fullscreenSwiped = true;
+    showNextFullscreenImage();
+  }
+});
+
+fullscreenViewerEl.addEventListener("click", () => {
+  if (fullscreenSwiped) {
+    fullscreenSwiped = false;
+    return;
+  }
+  closeFullscreenViewer();
+});
+
 document.getElementById("fullscreen-close-btn").addEventListener("click", e => {
   e.stopPropagation();
   closeFullscreenViewer();
 });
+document.getElementById("fullscreen-prev-btn").addEventListener("click", e => {
+  e.stopPropagation();
+  showPrevFullscreenImage();
+});
+document.getElementById("fullscreen-next-btn").addEventListener("click", e => {
+  e.stopPropagation();
+  showNextFullscreenImage();
+});
 document.addEventListener("keydown", e => {
+  if (fullscreenViewerEl.classList.contains("hidden")) return;
   if (e.key === "Escape") closeFullscreenViewer();
+  if (e.key === "ArrowRight") showNextFullscreenImage();
+  if (e.key === "ArrowLeft") showPrevFullscreenImage();
 });
 
-document.getElementById("compare-img-a").addEventListener("click", () => {
-  const img = document.getElementById("compare-img-a");
-  if (!img.classList.contains("hidden")) openFullscreenViewer(img.src);
-});
-document.getElementById("compare-img-b").addEventListener("click", () => {
-  const img = document.getElementById("compare-img-b");
-  if (!img.classList.contains("hidden")) openFullscreenViewer(img.src);
-});
+document.getElementById("compare-img-a").addEventListener("click", () => openCompareFullscreen("a"));
+document.getElementById("compare-img-b").addEventListener("click", () => openCompareFullscreen("b"));
+
+function openCompareFullscreen(slot) {
+  const img = document.getElementById(`compare-img-${slot}`);
+  if (img.classList.contains("hidden")) return;
+  const iso = document.getElementById(`compare-date-${slot}`).value;
+  const day = photos[iso];
+  if (!day) return;
+  const angles = CAMERA_ANGLES.filter(({ key }) => day[key]);
+  const group = angles.map(({ key }) => day[key].dataUrl);
+  const currentAngle = document.getElementById("compare-angle-select").value;
+  const idx = Math.max(0, angles.findIndex(({ key }) => key === currentAngle));
+  openFullscreenViewer(group, idx);
+}
 
 ["left", "center", "right"].forEach(angle => {
   document.getElementById(`lightbox-img-${angle}`).addEventListener("click", () => {
-    const img = document.getElementById(`lightbox-img-${angle}`);
-    if (img.src) openFullscreenViewer(img.src);
+    const iso = document.getElementById("photo-lightbox").dataset.date;
+    const day = photos[iso];
+    if (!day) return;
+    const angles = CAMERA_ANGLES.filter(({ key }) => day[key]);
+    const group = angles.map(({ key }) => day[key].dataUrl);
+    const idx = angles.findIndex(({ key }) => key === angle);
+    if (idx === -1) return;
+    openFullscreenViewer(group, idx);
   });
 });
 
