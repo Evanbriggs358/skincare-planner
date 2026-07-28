@@ -733,19 +733,22 @@ h2:first-of-type { margin-top: 4px; }
 }
 .compare-col {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 .compare-col select,
 .compare-col input[type="date"] {
-  padding: 8px;
+  padding: 6px 4px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   background: white;
   color: var(--text);
   width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 .compare-col img {
   width: 100%;
