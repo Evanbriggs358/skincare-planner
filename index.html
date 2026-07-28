@@ -158,13 +158,14 @@
 
   <!-- PHOTOS TAB -->
   <section id="tab-photos" class="tab-panel">
-    <button id="open-camera-btn" class="primary-btn">📷 Add today's photo</button>
+    <button id="open-camera-btn" class="primary-btn">📷 Add today's photos</button>
     <input type="file" id="photo-file-input" accept="image/*" capture="user" class="visually-hidden">
     <p id="photo-upload-status" class="gate-status"></p>
 
     <!-- Custom camera view with alignment guide -->
     <div id="camera-view" class="modal hidden">
       <div class="camera-content">
+        <div id="camera-step-label" class="camera-step-label"></div>
         <video id="camera-video" autoplay playsinline muted></video>
         <svg id="camera-guide" class="camera-guide" viewBox="0 0 300 400" preserveAspectRatio="xMidYMid meet">
           <ellipse cx="150" cy="190" rx="95" ry="135" />
@@ -178,8 +179,14 @@
     </div>
 
     <h2>Compare</h2>
-    <p id="compare-empty-note" class="empty-note hidden">Add at least 2 photos to compare.</p>
+    <p id="compare-empty-note" class="empty-note hidden">Add at least 2 days of photos to compare.</p>
     <div id="compare-section" class="compare-section hidden">
+      <label for="compare-angle-select" class="compare-angle-label">Angle</label>
+      <select id="compare-angle-select">
+        <option value="left">Left side</option>
+        <option value="center" selected>Straight on</option>
+        <option value="right">Right side</option>
+      </select>
       <div class="compare-row">
         <div class="compare-col">
           <select id="compare-select-a"></select>
@@ -195,13 +202,26 @@
     <h2>All photos</h2>
     <div id="photo-timeline" class="photo-timeline"></div>
 
-    <!-- Lightbox (hidden until a photo is opened) -->
+    <!-- Lightbox (hidden until a day is opened) -->
     <div id="photo-lightbox" class="modal hidden">
       <div class="modal-content lightbox-content">
-        <img id="lightbox-img" src="" alt="Skin photo">
         <div id="lightbox-date" class="lightbox-date"></div>
+        <div class="lightbox-angles">
+          <div class="lightbox-angle-col">
+            <img id="lightbox-img-left" src="" alt="Left side">
+            <span>Left</span>
+          </div>
+          <div class="lightbox-angle-col">
+            <img id="lightbox-img-center" src="" alt="Straight on">
+            <span>Center</span>
+          </div>
+          <div class="lightbox-angle-col">
+            <img id="lightbox-img-right" src="" alt="Right side">
+            <span>Right</span>
+          </div>
+        </div>
         <div class="modal-actions">
-          <button id="lightbox-delete-btn" class="secondary-btn">Delete</button>
+          <button id="lightbox-delete-btn" class="secondary-btn">Delete day</button>
           <button id="lightbox-close-btn" class="primary-btn">Close</button>
         </div>
       </div>
@@ -224,6 +244,6 @@
 
 </div><!-- /#app-content -->
 
-<script type="module" src="app.js"></script>
+<script type="module" src="app.js?v=2"></script>
 </body>
 </html>

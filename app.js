@@ -319,7 +319,7 @@ function buildDayCardHtml(date, today, extraClass) {
   const milestone = MILESTONES.find(m => m.date === dateToISO(date));
   const isDayView = !!extraClass;
   const differinNight = isDifferinNight(date);
-  const dayPhoto = photos[dateToISO(date)];
+  const dayPhotos = photos[dateToISO(date)];
 
   return `
     ${milestone && isDayView ? `<div class="milestone-banner">📋 ${escapeHtml(milestone.label)}</div>` : ""}
@@ -332,10 +332,13 @@ function buildDayCardHtml(date, today, extraClass) {
       ${renderDaySteps(morning)}
       <div class="day-section-label">Evening ${differinNight ? '<span class="differin-tag">🔴 Differin night</span>' : ""}</div>
       ${renderDaySteps(evening)}
-      ${dayPhoto && isDayView ? `
-        <button type="button" class="day-photo-thumb" data-date="${dateToISO(date)}">
-          <img src="${dayPhoto.dataUrl}" alt="Photo from ${formatISOShort(dateToISO(date))}">
-        </button>
+      ${dayPhotos && isDayView ? `
+        <div class="day-photos-row">
+          ${CAMERA_ANGLES.map(({ key }) => dayPhotos[key]
+            ? `<button type="button" class="day-photo-thumb" data-date="${dateToISO(date)}"><img src="${dayPhotos[key].dataUrl}" alt="${key} photo"></button>`
+            : ""
+          ).join("")}
+        </div>
       ` : ""}
     </div>
   `;
@@ -345,8 +348,9 @@ function renderDayView(container) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   container.innerHTML = buildDayCardHtml(calendarDate, today, "day-view-card");
-  const photoBtn = container.querySelector(".day-photo-thumb");
-  if (photoBtn) photoBtn.addEventListener("click", () => openLightbox(photoBtn.dataset.date));
+  container.querySelectorAll(".day-photo-thumb").forEach(btn => {
+    btn.addEventListener("click", () => openLightbox(btn.dataset.date));
+  });
 }
 
 function renderWeekViewInto(container) {
@@ -683,43 +687,55 @@ async function compressImage(file) {
   return dataUrl;
 }
 
-async function savePhotoBlob(blob) {
+async function savePhotoBlob(blob, angle) {
   if (!photosCollectionRef) return;
   const statusEl = document.getElementById("photo-upload-status");
-  statusEl.textContent = "Processing photo...";
+  statusEl.textContent = `Processing ${angle} photo...`;
   try {
     const dataUrl = await compressImage(blob);
     const iso = todayISO();
-    await setDoc(doc(photosCollectionRef, iso), { dataUrl, uploadedAt: new Date().toISOString() });
-    statusEl.textContent = "Saved today's photo.";
+    await setDoc(doc(photosCollectionRef, `${iso}_${angle}`), { date: iso, angle, dataUrl, uploadedAt: new Date().toISOString() });
+    statusEl.textContent = `Saved ${angle} photo.`;
   } catch (err) {
     console.error(err);
     statusEl.textContent = "Couldn't process that photo — try again.";
   }
 }
 
-document.getElementById("photo-file-input").addEventListener("change", e => {
-  const file = e.target.files[0];
-  e.target.value = "";
-  if (!file) return;
-  savePhotoBlob(file);
-});
-
-// ---- Custom camera view with alignment guide ----
+// ---- Custom camera view with alignment guide (3-angle sequence) ----
+const CAMERA_ANGLES = [
+  { key: "left", label: "Left side" },
+  { key: "center", label: "Straight on" },
+  { key: "right", label: "Right side" }
+];
 let cameraStream = null;
+let cameraSequenceIndex = 0;
+let usingFileFallback = false;
+
+function updateCameraStepUI() {
+  const step = CAMERA_ANGLES[cameraSequenceIndex];
+  document.getElementById("camera-step-label").textContent = `Photo ${cameraSequenceIndex + 1} of 3 — ${step.label}`;
+  document.getElementById("camera-capture-btn").textContent = `Capture: ${step.label}`;
+}
 
 async function openCamera() {
   if (!photosCollectionRef) return;
+  cameraSequenceIndex = 0;
+
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    usingFileFallback = true;
     document.getElementById("photo-file-input").click();
     return;
   }
   try {
     cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+    usingFileFallback = false;
     document.getElementById("camera-video").srcObject = cameraStream;
     document.getElementById("camera-view").classList.remove("hidden");
+    updateCameraStepUI();
   } catch (err) {
     console.error(err);
+    usingFileFallback = true;
     document.getElementById("photo-file-input").click();
   }
 }
@@ -730,6 +746,20 @@ function closeCamera() {
     cameraStream = null;
   }
   document.getElementById("camera-view").classList.add("hidden");
+}
+
+function advanceSequenceOrFinish() {
+  cameraSequenceIndex += 1;
+  if (cameraSequenceIndex >= CAMERA_ANGLES.length) {
+    closeCamera();
+    document.getElementById("photo-upload-status").textContent = "Saved today's 3 photos.";
+    return;
+  }
+  if (usingFileFallback) {
+    document.getElementById("photo-file-input").click();
+  } else {
+    updateCameraStepUI();
+  }
 }
 
 document.getElementById("open-camera-btn").addEventListener("click", openCamera);
@@ -744,10 +774,21 @@ document.getElementById("camera-capture-btn").addEventListener("click", () => {
   ctx.translate(canvas.width, 0);
   ctx.scale(-1, 1);
   ctx.drawImage(video, 0, 0);
-  canvas.toBlob(blob => {
-    closeCamera();
-    if (blob) savePhotoBlob(blob);
+  canvas.toBlob(async blob => {
+    if (!blob) return;
+    const angle = CAMERA_ANGLES[cameraSequenceIndex].key;
+    await savePhotoBlob(blob, angle);
+    advanceSequenceOrFinish();
   }, "image/jpeg", 0.92);
+});
+
+document.getElementById("photo-file-input").addEventListener("change", async e => {
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  const angle = CAMERA_ANGLES[cameraSequenceIndex].key;
+  await savePhotoBlob(file, angle);
+  advanceSequenceOrFinish();
 });
 
 function renderPhotosTab() {
@@ -759,14 +800,21 @@ function renderPhotosTab() {
     return;
   }
 
-  container.innerHTML = dates.map(iso => `
-    <button type="button" class="photo-thumb" data-date="${iso}">
-      <img src="${photos[iso].dataUrl}" alt="Skin photo from ${formatISOShort(iso)}">
-      <span>${formatISOShort(iso)}</span>
-    </button>
-  `).join("");
+  container.innerHTML = dates.map(iso => {
+    const day = photos[iso];
+    const thumbs = CAMERA_ANGLES.map(({ key }) => day[key]
+      ? `<img src="${day[key].dataUrl}" alt="${key} photo from ${formatISOShort(iso)}">`
+      : `<div class="angle-missing"></div>`
+    ).join("");
+    return `
+      <button type="button" class="photo-day-card" data-date="${iso}">
+        <div class="photo-day-date">${formatISOShort(iso)}</div>
+        <div class="photo-day-thumbs">${thumbs}</div>
+      </button>
+    `;
+  }).join("");
 
-  container.querySelectorAll(".photo-thumb").forEach(btn => {
+  container.querySelectorAll(".photo-day-card").forEach(btn => {
     btn.addEventListener("click", () => openLightbox(btn.dataset.date));
   });
 }
@@ -802,17 +850,22 @@ function renderCompareSection() {
 function updateCompareImages() {
   const isoA = document.getElementById("compare-select-a").value;
   const isoB = document.getElementById("compare-select-b").value;
-  if (photos[isoA]) document.getElementById("compare-img-a").src = photos[isoA].dataUrl;
-  if (photos[isoB]) document.getElementById("compare-img-b").src = photos[isoB].dataUrl;
+  const angle = document.getElementById("compare-angle-select").value;
+  document.getElementById("compare-img-a").src = photos[isoA]?.[angle]?.dataUrl || "";
+  document.getElementById("compare-img-b").src = photos[isoB]?.[angle]?.dataUrl || "";
 }
 
 document.getElementById("compare-select-a").addEventListener("change", updateCompareImages);
 document.getElementById("compare-select-b").addEventListener("change", updateCompareImages);
+document.getElementById("compare-angle-select").addEventListener("change", updateCompareImages);
 
 function openLightbox(iso) {
-  if (!photos[iso]) return;
-  document.getElementById("lightbox-img").src = photos[iso].dataUrl;
+  const day = photos[iso];
+  if (!day) return;
   document.getElementById("lightbox-date").textContent = formatISOShort(iso);
+  document.getElementById("lightbox-img-left").src = day.left?.dataUrl || "";
+  document.getElementById("lightbox-img-center").src = day.center?.dataUrl || "";
+  document.getElementById("lightbox-img-right").src = day.right?.dataUrl || "";
   const lightbox = document.getElementById("photo-lightbox");
   lightbox.dataset.date = iso;
   lightbox.classList.remove("hidden");
@@ -827,8 +880,8 @@ document.getElementById("lightbox-close-btn").addEventListener("click", closeLig
 document.getElementById("lightbox-delete-btn").addEventListener("click", async () => {
   const iso = document.getElementById("photo-lightbox").dataset.date;
   if (!iso || !photosCollectionRef) return;
-  if (!confirm(`Delete the photo from ${formatISOShort(iso)}?`)) return;
-  await deleteDoc(doc(photosCollectionRef, iso));
+  if (!confirm(`Delete all photos from ${formatISOShort(iso)}?`)) return;
+  await Promise.all(CAMERA_ANGLES.map(({ key }) => deleteDoc(doc(photosCollectionRef, `${iso}_${key}`))));
   closeLightbox();
 });
 
@@ -902,7 +955,12 @@ async function connect(hash) {
   if (unsubscribePhotos) unsubscribePhotos();
   unsubscribePhotos = onSnapshot(photosCollectionRef, snap => {
     photos = {};
-    snap.forEach(d => { photos[d.id] = d.data(); });
+    snap.forEach(d => {
+      const data = d.data();
+      if (!data.date || !data.angle) return;
+      if (!photos[data.date]) photos[data.date] = {};
+      photos[data.date][data.angle] = data;
+    });
     renderPhotosTab();
     renderCompareSection();
     renderAll();
