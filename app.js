@@ -1074,10 +1074,20 @@ function closeWipeViewer() {
   document.getElementById("wipe-viewer").classList.add("hidden");
 }
 
+function setWipeClip(revealPercent, direction) {
+  if (direction === -1) {
+    wipeCurrentImgEl.style.clipPath = `inset(0 ${revealPercent}% 0 0)`;
+  } else if (direction === 1) {
+    wipeCurrentImgEl.style.clipPath = `inset(0 0 0 ${revealPercent}%)`;
+  } else {
+    wipeCurrentImgEl.style.clipPath = "inset(0 0 0 0)";
+  }
+}
+
 function renderWipeCurrent() {
   const cur = wipeSequence[wipeIndex];
   wipeCurrentImgEl.style.transition = "none";
-  wipeCurrentImgEl.style.transform = "translateX(0px)";
+  setWipeClip(0, 0);
   wipeCurrentImgEl.src = cur.dataUrl;
   wipeNextImgEl.src = "";
   document.getElementById("wipe-date-label").textContent = formatISOShort(cur.iso);
@@ -1109,7 +1119,8 @@ function wipeDragMove(clientX) {
   if (wipeDirection === 0) return;
 
   wipeDragDeltaX = rawDelta;
-  wipeCurrentImgEl.style.transform = `translateX(${wipeDragDeltaX}px)`;
+  const revealPercent = Math.min(100, (Math.abs(wipeDragDeltaX) / wipeStageWidth) * 100);
+  setWipeClip(revealPercent, wipeDirection);
 
   const targetIdx = wipeIndex - wipeDirection;
   const curIso = wipeSequence[wipeIndex].iso;
@@ -1125,18 +1136,17 @@ function wipeDragEnd() {
   if (wipeDirection === 0) return;
 
   const threshold = wipeStageWidth * 0.3;
-  wipeCurrentImgEl.style.transition = "transform 0.2s ease";
+  wipeCurrentImgEl.style.transition = "clip-path 0.2s ease";
 
   if (Math.abs(wipeDragDeltaX) > threshold) {
-    const finalX = wipeDirection === -1 ? -wipeStageWidth : wipeStageWidth;
-    wipeCurrentImgEl.style.transform = `translateX(${finalX}px)`;
+    setWipeClip(100, wipeDirection);
     const committedIndex = wipeIndex - wipeDirection;
     setTimeout(() => {
       wipeIndex = committedIndex;
       renderWipeCurrent();
     }, 200);
   } else {
-    wipeCurrentImgEl.style.transform = "translateX(0px)";
+    setWipeClip(0, wipeDirection);
     setTimeout(() => {
       wipeNextImgEl.src = "";
       document.getElementById("wipe-date-label").textContent = formatISOShort(wipeSequence[wipeIndex].iso);
