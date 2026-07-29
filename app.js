@@ -1038,6 +1038,138 @@ function openCompareFullscreen(slot) {
   });
 });
 
+// ---- Scrub-through-history wipe comparison viewer ----
+function getAngleSequence(angle) {
+  return Object.keys(photos)
+    .filter(iso => photos[iso][angle])
+    .sort()
+    .map(iso => ({ iso, dataUrl: photos[iso][angle].dataUrl }));
+}
+
+let wipeSequence = [];
+let wipeIndex = 0;
+let wipeDirection = 0; // -1 = revealing the next (newer) photo, 1 = revealing the previous (older) photo
+let wipeDragStartX = null;
+let wipeDragDeltaX = 0;
+let wipeStageWidth = 0;
+
+const wipeStageEl = document.getElementById("wipe-stage");
+const wipeCurrentImgEl = document.getElementById("wipe-img-current");
+const wipeNextImgEl = document.getElementById("wipe-img-next");
+
+function openWipeViewer() {
+  const angle = document.getElementById("wipe-angle-select").value;
+  wipeSequence = getAngleSequence(angle);
+  wipeIndex = wipeSequence.length - 1;
+
+  const hasEnough = wipeSequence.length >= 2;
+  document.getElementById("wipe-empty-note").classList.toggle("hidden", hasEnough);
+  wipeStageEl.classList.toggle("hidden", !hasEnough || wipeSequence.length === 0);
+
+  if (wipeSequence.length > 0) renderWipeCurrent();
+  document.getElementById("wipe-viewer").classList.remove("hidden");
+}
+
+function closeWipeViewer() {
+  document.getElementById("wipe-viewer").classList.add("hidden");
+}
+
+function renderWipeCurrent() {
+  const cur = wipeSequence[wipeIndex];
+  wipeCurrentImgEl.style.transition = "none";
+  wipeCurrentImgEl.style.transform = "translateX(0px)";
+  wipeCurrentImgEl.src = cur.dataUrl;
+  wipeNextImgEl.src = "";
+  document.getElementById("wipe-date-label").textContent = formatISOShort(cur.iso);
+  document.getElementById("wipe-counter").textContent = `${wipeIndex + 1} / ${wipeSequence.length}`;
+}
+
+function wipeDragStart(clientX) {
+  if (wipeSequence.length < 2) return;
+  wipeDragStartX = clientX;
+  wipeDragDeltaX = 0;
+  wipeDirection = 0;
+  wipeStageWidth = wipeStageEl.clientWidth;
+  wipeCurrentImgEl.style.transition = "none";
+}
+
+function wipeDragMove(clientX) {
+  if (wipeDragStartX === null) return;
+  const rawDelta = clientX - wipeDragStartX;
+
+  if (wipeDirection === 0 && Math.abs(rawDelta) > 5) {
+    const dir = rawDelta < 0 ? -1 : 1;
+    const targetIdx = wipeIndex - dir;
+    if (targetIdx < 0 || targetIdx >= wipeSequence.length) return; // no photo that way — ignore
+    wipeDirection = dir;
+    wipeNextImgEl.style.transition = "none";
+    wipeNextImgEl.src = wipeSequence[targetIdx].dataUrl;
+  }
+
+  if (wipeDirection === 0) return;
+
+  wipeDragDeltaX = rawDelta;
+  wipeCurrentImgEl.style.transform = `translateX(${wipeDragDeltaX}px)`;
+
+  const targetIdx = wipeIndex - wipeDirection;
+  const curIso = wipeSequence[wipeIndex].iso;
+  const otherIso = wipeSequence[targetIdx].iso;
+  document.getElementById("wipe-date-label").textContent = wipeDirection === -1
+    ? `${formatISOShort(curIso)} → ${formatISOShort(otherIso)}`
+    : `${formatISOShort(otherIso)} ← ${formatISOShort(curIso)}`;
+}
+
+function wipeDragEnd() {
+  if (wipeDragStartX === null) return;
+  wipeDragStartX = null;
+  if (wipeDirection === 0) return;
+
+  const threshold = wipeStageWidth * 0.3;
+  wipeCurrentImgEl.style.transition = "transform 0.2s ease";
+
+  if (Math.abs(wipeDragDeltaX) > threshold) {
+    const finalX = wipeDirection === -1 ? -wipeStageWidth : wipeStageWidth;
+    wipeCurrentImgEl.style.transform = `translateX(${finalX}px)`;
+    const committedIndex = wipeIndex - wipeDirection;
+    setTimeout(() => {
+      wipeIndex = committedIndex;
+      renderWipeCurrent();
+    }, 200);
+  } else {
+    wipeCurrentImgEl.style.transform = "translateX(0px)";
+    setTimeout(() => {
+      wipeNextImgEl.src = "";
+      document.getElementById("wipe-date-label").textContent = formatISOShort(wipeSequence[wipeIndex].iso);
+    }, 200);
+  }
+  wipeDirection = 0;
+}
+
+document.getElementById("open-wipe-btn").addEventListener("click", openWipeViewer);
+document.getElementById("wipe-close-btn").addEventListener("click", closeWipeViewer);
+document.getElementById("wipe-angle-select").addEventListener("change", openWipeViewer);
+
+wipeStageEl.addEventListener("touchstart", e => wipeDragStart(e.touches[0].clientX), { passive: true });
+wipeStageEl.addEventListener("touchmove", e => {
+  if (wipeDragStartX === null) return;
+  e.preventDefault();
+  wipeDragMove(e.touches[0].clientX);
+}, { passive: false });
+wipeStageEl.addEventListener("touchend", wipeDragEnd);
+wipeStageEl.addEventListener("touchcancel", wipeDragEnd);
+
+wipeStageEl.addEventListener("mousedown", e => {
+  wipeDragStart(e.clientX);
+  const onMove = ev => wipeDragMove(ev.clientX);
+  const onUp = () => {
+    wipeDragEnd();
+    document.removeEventListener("mousemove", onMove);
+    document.removeEventListener("mouseup", onUp);
+  };
+  document.addEventListener("mousemove", onMove);
+  document.addEventListener("mouseup", onUp);
+});
+
 function renderCompareSection() {
   const dates = Object.keys(photos).sort();
   const dateA = document.getElementById("compare-date-a");

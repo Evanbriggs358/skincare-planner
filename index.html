@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Skincare Planner</title>
-<link rel="stylesheet" href="style.css?v=8">
+<link rel="stylesheet" href="style.css?v=9">
 </head>
 <body>
 
@@ -116,6 +116,8 @@
         </div>
       </div>
     </div>
+
+    <button id="open-wipe-btn" class="secondary-btn full-width">🔀 Scrub through history</button>
 
     <h2>Daily log</h2>
     <div id="unified-timeline" class="photo-timeline"></div>
@@ -251,8 +253,32 @@
   <div id="fullscreen-counter" class="fullscreen-counter"></div>
 </div>
 
+<!-- Scrub-through-history wipe comparison viewer -->
+<div id="wipe-viewer" class="fullscreen-viewer hidden">
+  <button id="wipe-close-btn" class="fullscreen-close-btn" aria-label="Close">&times;</button>
+
+  <div class="wipe-header">
+    <label for="wipe-angle-select">Angle</label>
+    <select id="wipe-angle-select">
+      <option value="left">Left side</option>
+      <option value="center" selected>Straight on</option>
+      <option value="right">Right side</option>
+    </select>
+  </div>
+
+  <p id="wipe-empty-note" class="wipe-empty-note hidden">Add at least 2 photos of this angle to scrub through your history.</p>
+
+  <div id="wipe-stage" class="wipe-stage hidden">
+    <img id="wipe-img-next" class="wipe-img-next" src="" alt="" draggable="false">
+    <img id="wipe-img-current" class="wipe-img-current" src="" alt="" draggable="false">
+  </div>
+
+  <div id="wipe-date-label" class="wipe-date-label"></div>
+  <div id="wipe-counter" class="fullscreen-counter"></div>
+</div>
+
 </div><!-- /#app-content -->
 
-<script type="module" src="app.js?v=8"></script>
+<script type="module" src="app.js?v=9"></script>
 </body>
 </html>

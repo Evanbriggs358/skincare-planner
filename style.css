@@ -217,6 +217,68 @@ h2:first-of-type { margin-top: 4px; }
   font-size: 0.85rem;
 }
 
+.wipe-header {
+  position: absolute;
+  top: 14px;
+  left: 18px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.wipe-header label {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.8rem;
+}
+.wipe-header select {
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 0.8rem;
+}
+
+.wipe-empty-note {
+  color: rgba(255, 255, 255, 0.8);
+  text-align: center;
+  padding: 0 30px;
+  font-size: 0.9rem;
+}
+
+.wipe-stage {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  touch-action: none;
+  border-radius: 8px;
+}
+.wipe-stage.hidden { display: none; }
+
+.wipe-img-current,
+.wipe-img-next {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  -webkit-user-drag: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.wipe-img-current { z-index: 2; }
+.wipe-img-next { z-index: 1; }
+
+.wipe-date-label {
+  margin-top: 14px;
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: center;
+}
+
 .photo-day-thumbs img,
 .compare-col img,
 .day-photo-thumb img,
