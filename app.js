@@ -1180,13 +1180,21 @@ wipeStageEl.addEventListener("mousedown", e => {
   document.addEventListener("mouseup", onUp);
 });
 
+let userTouchedCompareDates = false;
+
 function renderCompareSection() {
   const dates = Object.keys(photos).sort();
   const dateA = document.getElementById("compare-date-a");
   const dateB = document.getElementById("compare-date-b");
 
-  if (!dateA.value) dateA.value = dates.length ? dates[0] : todayISO();
-  if (!dateB.value) dateB.value = dates.length ? dates[dates.length - 1] : todayISO();
+  // Keep the defaults live (the two most recent photos) until the user
+  // manually picks a date themselves — Firestore can deliver the photo
+  // collection progressively, so a "set once" flag could lock in based on
+  // whichever photo happened to sync first.
+  if (!userTouchedCompareDates) {
+    dateA.value = dates.length >= 2 ? dates[dates.length - 2] : dates.length ? dates[0] : todayISO();
+    dateB.value = dates.length ? dates[dates.length - 1] : todayISO();
+  }
 
   updateCompareImages();
 }
@@ -1217,8 +1225,14 @@ function updateCompareImages() {
   document.getElementById("compare-bars-b").innerHTML = buildScoreBarsHtml(isoB);
 }
 
-document.getElementById("compare-date-a").addEventListener("change", updateCompareImages);
-document.getElementById("compare-date-b").addEventListener("change", updateCompareImages);
+document.getElementById("compare-date-a").addEventListener("change", () => {
+  userTouchedCompareDates = true;
+  updateCompareImages();
+});
+document.getElementById("compare-date-b").addEventListener("change", () => {
+  userTouchedCompareDates = true;
+  updateCompareImages();
+});
 document.getElementById("compare-angle-select").addEventListener("change", updateCompareImages);
 
 function openLightbox(iso) {
@@ -1362,6 +1376,9 @@ document.getElementById("forget-device-btn").addEventListener("click", () => {
   steps = [];
   checkins = [];
   photos = {};
+  userTouchedCompareDates = false;
+  document.getElementById("compare-date-a").value = "";
+  document.getElementById("compare-date-b").value = "";
   document.getElementById("gate-passphrase").value = "";
   showGate("");
 });
